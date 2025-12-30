@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil - Sistema de Futevôlei</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm" style="background: var(--primary-dark);">
+        <div class="container-fluid px-3">
+            <a class="navbar-brand" href="{{ url_for('routes.list_classes') }}">Leo Campos | Futevôlei</a>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span class="text-white d-none d-sm-inline">{{ session.user_name }}</span>
+                <div class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;">{{ session.user_name[:2] }}</div>
+                <a href="{{ url_for('routes.list_classes') }}" class="btn btn-outline-light btn-sm">Aulas</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 96px; padding-bottom: 48px;">
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="avatar-dot">{{ user.name[:2] }}</div>
+                            <div>
+                                <h5 class="mb-1">{{ user.name }}</h5>
+                                <small class="text-muted">{{ user.email }}</small>
+                            </div>
+                        </div>
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2"><strong>Telefone:</strong> {{ user.phone or '-' }}</li>
+                            <li class="mb-2"><strong>Gênero:</strong> {{ user.gender or '—' }}</li>
+                            <li class="mb-2"><strong>Membro desde:</strong> {{ user.created_at.strftime('%d/%m/%Y') }}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid mt-3">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Aulas confirmadas</div>
+                        <div class="kpi-value" id="kpiConfirmed">{{ stats.confirmed }}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Pagamentos pendentes</div>
+                        <div class="kpi-value" id="kpiPending">{{ stats.pending }}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total pago (PIX)</div>
+                        <div class="kpi-value text-success" id="kpiPaid">R$ {{ '%.2f'|format(stats.total_paid_brl) }}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Próximas aulas</div>
+                        <div class="kpi-value" id="kpiUpcoming">{{ stats.upcoming }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="mb-3">Minhas aulas</h5>
+                        {% if enrollments %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Aula</th>
+                                        <th>Data</th>
+                                        <th>Horário</th>
+                                        <th>Status</th>
+                                        <th>Pagamento</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for e in enrollments %}
+                                    <tr>
+                                        <td>{{ e.class_ref.title }}</td>
+                                        <td>{{ e.class_ref.date.strftime('%d/%m/%Y') }}</td>
+                                        <td>{{ e.class_ref.time.strftime('%H:%M') }}</td>
+                                        <td>
+                                            {% if e.status == 'CONFIRMED' %}
+                                                <span class="badge bg-success">Confirmada</span>
+                                            {% elif e.status == 'AWAITING_PAYMENT' %}
+                                                <span class="badge bg-warning text-dark">Pendente</span>
+                                            {% elif e.status == 'CANCELLED' %}
+                                                <span class="badge bg-danger">Cancelada</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ e.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% set p = payment_map.get(e.id) %}
+                                            {% if p %}
+                                                <span class="badge {{ 'bg-success' if p.status=='PAID' else ('bg-warning text-dark' if p.status=='PENDING' else 'bg-secondary') }}">{{ p.status }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-nowrap">
+                                            <a href="{{ url_for('routes.class_detail', class_id=e.class_id) }}" class="btn btn-sm btn-outline-primary">Detalhes</a>
+                                            {% if e.status == 'AWAITING_PAYMENT' and p %}
+                                                <a href="{{ url_for('routes.payment_page', enrollment_id=e.id) }}" class="btn btn-sm btn-danger">Pagar</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                            <div class="alert alert-light border">Você ainda não possui inscrições.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="mb-3">Pagamentos</h5>
+                        {% if payment_map %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Aula</th>
+                                        <th>Método</th>
+                                        <th>Valor</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for e in enrollments %}
+                                        {% set p = payment_map.get(e.id) %}
+                                        {% if p %}
+                                        <tr>
+                                            <td>{{ (p.validated_at or p.created_at).strftime('%d/%m/%Y %H:%M') if (p.validated_at or p.created_at) else '-' }}</td>
+                                            <td>{{ e.class_ref.title }}</td>
+                                            <td>{{ p.method }}</td>
+                                            <td>R$ {{ '%.2f'|format(p.amount) }}</td>
+                                            <td>
+                                                <span class="badge {{ 'bg-success' if p.status=='PAID' else ('bg-warning text-dark' if p.status=='PENDING' else 'bg-secondary') }}">{{ p.status }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                            <div class="alert alert-light border">Nenhum pagamento encontrado.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

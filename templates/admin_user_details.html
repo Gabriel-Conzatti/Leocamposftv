@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalhes do Usuário - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>👤 {{ user.email }}</h1>
+            <p class="text-muted">ID: <code>{{ user.id }}</code></p>
+        </div>
+        <div class="col-md-4 text-right">
+            <a href="{{ url_for('routes.list_users') }}" class="btn btn-secondary">
+                ← Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informações do Usuário -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    ℹ️ Informações do Usuário
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Email:</dt>
+                        <dd class="col-sm-8"><strong>{{ user.email }}</strong></dd>
+                        
+                        <dt class="col-sm-4">Perfil:</dt>
+                        <dd class="col-sm-8">
+                            {% if user.role == 'ADMIN' %}
+                                <span class="badge badge-primary">Admin</span>
+                            {% else %}
+                                <span class="badge badge-secondary">Aluno</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Cadastro:</dt>
+                        <dd class="col-sm-8">
+                            {% if user.created_at %}
+                                {{ user.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge badge-success">Ativo</span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    📊 Estatísticas
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h3 class="text-primary">{{ enrollments|length }}</h3>
+                            <p class="text-muted small">Inscrições</p>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h3 class="text-success">{{ payments|length }}</h3>
+                            <p class="text-muted small">Pagamentos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inscrições -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    📚 Inscrições
+                </div>
+                <div class="card-body">
+                    {% if enrollments %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Aula</th>
+                                        <th>Data</th>
+                                        <th>Status</th>
+                                        <th>Inscrição em</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for enrollment in enrollments %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ enrollment.class.starts_at.strftime('%A') }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {{ enrollment.class.starts_at.strftime('%H:%M') }} - 
+                                                    {{ enrollment.class.ends_at.strftime('%H:%M') }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {{ enrollment.class.starts_at.strftime('%d/%m/%Y') }}
+                                            </td>
+                                            <td>
+                                                {% if enrollment.status == 'CONFIRMED' %}
+                                                    <span class="badge badge-success">Confirmada</span>
+                                                {% elif enrollment.status == 'PENDING_PAYMENT' %}
+                                                    <span class="badge badge-warning">Pendente</span>
+                                                {% elif enrollment.status == 'WAITLIST' %}
+                                                    <span class="badge badge-info">Fila</span>
+                                                {% elif enrollment.status == 'CANCELLED' %}
+                                                    <span class="badge badge-secondary">Cancelada</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if enrollment.created_at %}
+                                                    {{ enrollment.created_at.strftime('%d/%m/%Y') }}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">
+                            Nenhuma inscrição
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagamentos -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    💳 Pagamentos
+                </div>
+                <div class="card-body">
+                    {% if payments %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Valor</th>
+                                        <th>Status</th>
+                                        <th>Data</th>
+                                        <th>ID MP</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for payment in payments %}
+                                        <tr>
+                                            <td>
+                                                <strong>R$ {{ "%.2f"|format(payment.amount_cents / 100) }}</strong>
+                                            </td>
+                                            <td>
+                                                {% if payment.status == 'PAID' %}
+                                                    <span class="badge badge-success">Pago</span>
+                                                {% elif payment.status == 'PENDING' %}
+                                                    <span class="badge badge-warning">Pendente</span>
+                                                {% elif payment.status == 'SUBMITTED' %}
+                                                    <span class="badge badge-info">Enviado</span>
+                                                {% elif payment.status == 'REJECTED' %}
+                                                    <span class="badge badge-danger">Rejeitado</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if payment.created_at %}
+                                                    {{ payment.created_at.strftime('%d/%m/%Y') }}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if payment.external_payment_id %}
+                                                    <code>{{ payment.external_payment_id[:10] }}...</code>
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">
+                            Nenhum pagamento
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    ⚠️ Ações Críticas
+                </div>
+                <div class="card-body">
+                    {% if user.id != session.user_id %}
+                        <form method="POST" action="{{ url_for('routes.delete_user', user_id=user.id) }}"
+                              onsubmit="return confirm('⚠️ ATENÇÃO: Você está deletando {{ user.email }}\n\nIsso é irreversível!\n\nTodas as inscrições e pagamentos serão removidos.');">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                🗑️ Deletar Usuário Permanentemente
+                            </button>
+                        </form>
+                    {% else %}
+                        <p class="text-muted">
+                            ℹ️ Você não pode deletar sua própria conta
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

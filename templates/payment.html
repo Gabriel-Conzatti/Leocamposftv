@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento PIX - Sistema de Futevôlei</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm" style="background: var(--primary-dark);">
+        <div class="container-fluid px-3">
+            <a class="navbar-brand" href="{{ url_for('routes.list_classes') }}">Leo Campos | Futevôlei</a>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span class="text-white d-none d-sm-inline">Olá, {{ session.user_name }}</span>
+                <a href="{{ url_for('routes.user_profile') }}" class="text-decoration-none" title="Meu perfil">
+                    <div class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;">{{ session.user_name[:2] }}</div>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container" style="padding-top: 96px; padding-bottom: 48px;">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="avatar-dot" style="width:56px;height:56px;font-size:1.1rem;">LC</div>
+                        </div>
+                        <h3 class="text-center mb-2" style="font-family:'Montserrat',sans-serif;">Finalize sua inscrição</h3>
+                        <p class="text-center text-muted mb-4">Pague via PIX para garantir sua vaga.</p>
+                        
+                        <div class="alert alert-info">
+                            <strong>Aula:</strong> {{ class_obj.title }}<br>
+                            <strong>Data:</strong> {{ class_obj.date.strftime('%d/%m/%Y') }} às {{ class_obj.time.strftime('%H:%M') }}<br>
+                            <strong>Valor:</strong> R$ {{ "%.2f"|format(payment.amount) }}
+                        </div>
+                        
+                        {% if class_obj.status == 'CANCELLED' %}
+                            <div class="alert alert-danger">
+                                <h4>Aula cancelada</h4>
+                                <p class="mb-2">Não realize pagamento. Entraremos em contato para estorno quando aplicável.</p>
+                                {% if payment.status == 'PAID' %}
+                                    <p class="mb-0">Pagamento já registrado. Aguarde contato do administrador.</p>
+                                {% endif %}
+                            </div>
+                        {% elif payment.status == 'PAID' %}
+                            <div class="alert alert-success text-center">
+                                <h4>✓ Pagamento confirmado!</h4>
+                                <p class="mb-0">Sua inscrição está confirmada. Nos vemos na aula!</p>
+                                <a href="{{ url_for('routes.list_classes') }}" class="btn btn-success mt-3">Voltar para aulas</a>
+                            </div>
+                        {% else %}
+                            <div id="payment-status" class="mb-4">
+                                <div class="alert alert-warning text-center">
+                                    <strong>⏳ Aguardando pagamento...</strong>
+                                    <p class="mb-0 mt-2">O pagamento será confirmado automaticamente após a compensação do PIX.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mb-4">
+                                <h5 class="mb-3">Escaneie o QR Code</h5>
+                                {% if payment.qr_code_base64 %}
+                                    <img src="data:image/png;base64,{{ payment.qr_code_base64 }}" alt="QR Code PIX" class="img-fluid mb-3" style="max-width: 300px;">
+                                {% else %}
+                                    <div class="alert alert-warning">QR Code não disponível</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h5>Ou copie o código PIX:</h5>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="pix-code" value="{{ payment.pix_payload }}" readonly>
+                                    <button class="btn btn-primary" type="button" onclick="copyPixCode(this)">
+                                        Copiar código
+                                    </button>
+                                </div>
+                                <small class="text-muted">Cole este código no seu aplicativo de banco para pagar</small>
+                            </div>
+                            
+                            <div class="alert alert-light border">
+                                <strong>Como pagar:</strong>
+                                <ol class="mb-0 mt-2">
+                                    <li>Abra o app do seu banco</li>
+                                    <li>Escolha pagar com PIX</li>
+                                    <li>Escaneie o QR Code ou cole o código</li>
+                                    <li>Confirme o pagamento</li>
+                                    <li>Aguarde a confirmação automática (alguns segundos)</li>
+                                </ol>
+                            </div>
+                            
+                            <!-- Botão de teste para desenvolvimento -->
+                            <div class="text-center mb-3">
+                                <button type="button" class="btn btn-primary btn-lg w-100" onclick="refreshPayment()">
+                                    🔄 Atualizar status do pagamento
+                                </button>
+                                <small class="d-block text-muted mt-2">Usar após pagar no app do banco para sincronizar</small>
+                            </div>
+
+                            <div class="text-center mb-3">
+                                <button type="button" class="btn btn-success btn-lg w-100" onclick="testPaymentApproval()">
+                                    ✅ Confirmar pagamento (Teste)
+                                </button>
+                                <small class="d-block text-muted mt-2">Apenas para testes locais (simula aprovação)</small>
+                            </div>
+                            
+                            <div class="text-center mb-3">
+                                <a href="{{ url_for('routes.class_detail', class_id=enrollment.class_id) }}" class="btn btn-outline-secondary btn-sm">
+                                    🔄 Gerar novo código PIX
+                                </a>
+                                <small class="d-block text-muted mt-1">Se o código expirou ou a internet caiu</small>
+                            </div>
+                            
+                            <div class="alert alert-danger mt-3">
+                                <strong>⚠️ IMPORTANTE:</strong><br>
+                                Você só será <strong>inscrito</strong> após confirmar o pagamento!<br>
+                                Sem pagamento confirmado, você <strong>NÃO</strong> poderá participar da aula.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Copiar código PIX
+        async function copyPixCode(btn) {
+            try {
+                const pixCode = document.getElementById('pix-code');
+                await navigator.clipboard.writeText(pixCode.value);
+
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copiado!';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                }, 2000);
+            } catch (err) {
+                alert('Não foi possível copiar o código.');
+            }
+        }
+        
+        // Atualizar status real no Mercado Pago
+        async function refreshPayment() {
+            try {
+                const response = await fetch('{{ url_for("routes.payment_refresh", enrollment_id=enrollment.id) }}', { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'approved') {
+                    alert('Pagamento aprovado! Recarregando...');
+                    location.reload();
+                } else if (data.status === 'pending') {
+                    alert('Pagamento ainda pendente. Aguarde alguns segundos e tente de novo.');
+                } else if (data.status === 'rejected') {
+                    alert('Pagamento rejeitado/cancelado. Gere um novo código.');
+                } else {
+                    alert('Erro: ' + (data.error || 'não foi possível atualizar'));
+                }
+            } catch (err) {
+                alert('Erro ao consultar pagamento: ' + err);
+            }
+        }
+
+        // Simular aprovação de pagamento (para testes)
+        async function testPaymentApproval() {
+            if (confirm('Deseja simular a aprovação deste pagamento?')) {
+                try {
+                    const response = await fetch('{{ url_for("routes.test_approve_payment", enrollment_id=enrollment.id) }}', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        alert('✓ Pagamento aprovado! Recarregando...');
+                        location.reload();
+                    } else {
+                        alert('❌ Erro ao aprovar pagamento');
+                    }
+                } catch (error) {
+                    alert('❌ Erro: ' + error);
+                }
+            }
+        }
+        
+        // Verificar status do pagamento a cada 3 segundos
+        {% if payment.status != 'PAID' %}
+        setInterval(async () => {
+            try {
+                const response = await fetch('{{ url_for("routes.payment_status", enrollment_id=enrollment.id) }}');
+                const data = await response.json();
+                
+                if (data.paid) {
+                    // Pagamento confirmado - recarregar página
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Erro ao verificar pagamento:', error);
+            }
+        }, 3000);
+        {% endif %}
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

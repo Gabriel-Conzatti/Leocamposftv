@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Criar Aula</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm" style="background: var(--primary-dark);">
+        <div class="container-fluid px-3">
+            <button class="btn btn-outline-light d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar">☰</button>
+            <a class="navbar-brand" href="{{ url_for('routes.admin_classes') }}">Leo Campos | Admin</a>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span class="text-white d-none d-sm-inline">{{ session.user_name }}</span>
+                <div class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;">{{ session.user_name[:2] }}</div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="adminSidebar" style="background: var(--primary-dark); color: white;">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">Menu</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav flex-column gap-2">
+                <li><a class="nav-link text-white" href="{{ url_for('routes.admin_classes') }}">📅 Aulas</a></li>
+                <li><a class="nav-link text-white" href="#">💰 Pagamentos</a></li>
+                <li><a class="nav-link text-white" href="#">👥 Alunos</a></li>
+                <li><a class="nav-link text-white" href="#">✅ Presença</a></li>
+                <li><a class="nav-link text-white" href="#">⚙️ Configurações</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="container" style="padding-top: 96px; padding-bottom: 48px;">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <a href="{{ url_for('routes.admin_classes') }}" class="btn btn-outline-secondary">← Voltar</a>
+                </div>
+                
+                <div class="card shadow">
+                    <div class="card-body p-4">
+                        <h3 class="mb-4">Criar Nova Aula</h3>
+                        
+                        <form method="POST" action="{{ url_for('routes.create_class') }}">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Título da aula</label>
+                                <input type="text" class="form-control" id="title" name="title" required placeholder="Ex: Futevôlei - Terça-feira 18h">
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="date" class="form-label">Data</label>
+                                    <input type="date" class="form-control" id="date" name="date" required>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="time" class="form-label">Horário</label>
+                                    <input type="time" class="form-control" id="time" name="time" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="duration_minutes" class="form-label">Duração (min)</label>
+                                    <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" value="90" required min="30">
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label for="capacity" class="form-label">Capacidade</label>
+                                    <input type="number" class="form-control" id="capacity" name="capacity" required min="1" placeholder="Ex: 8">
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label for="price" class="form-label">Valor (R$)</label>
+                                    <input type="number" class="form-control" id="price" name="price" required min="0" step="0.01" placeholder="Ex: 50.00">
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success btn-lg w-100">Criar Aula</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

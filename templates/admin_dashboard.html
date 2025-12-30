@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin | Leo Campos Futevôlei</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm" style="background: var(--primary-dark);">
+        <div class="container-fluid px-3">
+            <button class="btn btn-outline-light d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar">☰</button>
+            <a class="navbar-brand" href="{{ url_for('routes.admin_classes') }}">Leo Campos | Admin</a>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span class="text-white d-none d-sm-inline">{{ session.user_name }}</span>
+                <div class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;">{{ session.user_name[:2] }}</div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="adminSidebar" style="background: var(--primary-dark); color: white;">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">Menu</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav flex-column gap-2">
+                <li><a class="nav-link text-white" href="{{ url_for('routes.admin_dashboard') }}">📊 Dashboard</a></li>
+                <li><a class="nav-link text-white" href="{{ url_for('routes.admin_classes') }}">📅 Aulas</a></li>
+                <li><a class="nav-link text-white" href="{{ url_for('routes.list_users') }}">👥 Usuários</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container" style="padding-top: 96px; padding-bottom: 48px;">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+            <div>
+                <p class="text-muted mb-1">Visão geral</p>
+                <h2 class="mb-0" style="font-family:'Montserrat',sans-serif;">Dashboard administrativo</h2>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <select id="monthSelect" class="form-select filter-pill" style="width: 180px;">
+                    {% set months = [
+                        'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+                        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+                    ] %}
+                    {% for label in months %}
+                        {% set idx = loop.index %}
+                        <option value="{{ idx }}" {% if idx == current_month %}selected{% endif %}>{{ idx }} - {{ label }}</option>
+                    {% endfor %}
+                </select>
+                <select id="yearSelect" class="form-select filter-pill" style="width: 150px;">
+                    {% set year_now = current_year %}
+                    {% for y in range(year_now-1, year_now+2) %}
+                        <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+                <button id="refreshBtn" class="btn btn-primary">Atualizar</button>
+            </div>
+        </div>
+
+        <div id="kpiSection" class="dashboard-grid mb-4">
+            <div class="kpi-card">
+                <div class="kpi-label">Total de aulas</div>
+                <div class="kpi-value" id="kpiClasses">--</div>
+                <div class="kpi-trend text-muted">No mês selecionado</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Aulas canceladas</div>
+                <div class="kpi-value text-danger" id="kpiCancelled">--</div>
+                <div class="kpi-trend text-muted">Impacto operacional</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Alunos únicos</div>
+                <div class="kpi-value" id="kpiStudents">--</div>
+                <div class="kpi-trend text-muted">Alcance mensal</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Total de inscrições</div>
+                <div class="kpi-value" id="kpiEnrollments">--</div>
+                <div class="kpi-trend text-muted">Inclui pendentes e confirmadas</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Arrecadação (PIX)</div>
+                <div class="kpi-value text-success" id="kpiRevenue">--</div>
+                <div class="kpi-trend text-muted">Pagamentos aprovados</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Taxa de cancelamento</div>
+                <div class="kpi-value" id="kpiCancelRate">--</div>
+                <div class="kpi-trend text-muted">% sobre aulas do mês</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Ocupação média</div>
+                <div class="kpi-value" id="kpiOccupancy">--</div>
+                <div class="kpi-trend text-muted">Confirmados / capacidade</div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-title">Aulas por mês</div>
+                    <canvas id="classesChart" height="300"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-title">Alunos únicos por mês</div>
+                    <canvas id="studentsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-title">Valor arrecadado por mês</div>
+                    <canvas id="revenueChart" height="300"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-title">Aulas canceladas por mês</div>
+                    <canvas id="cancelledChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-title">Status das inscrições</div>
+                    <canvas id="statusChart" height="300"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-title">Ocupação por dia da semana</div>
+                    <canvas id="weekdayChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const charts = {};
+        const palette = {
+            primary: '#0E4A7B',
+            accent: '#2E86C1',
+            success: '#1ABC9C',
+            warning: '#F1C40F',
+            danger: '#E74C3C',
+            gray: '#94a3b8',
+            muted: '#e5e9f0'
+        };
+
+        const monthSelect = document.getElementById('monthSelect');
+        const yearSelect = document.getElementById('yearSelect');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const kpiSection = document.getElementById('kpiSection');
+
+        Chart.defaults.font.family = 'Inter, Poppins, Montserrat, system-ui, -apple-system, sans-serif';
+        Chart.defaults.color = '#1f2937';
+        Chart.defaults.plugins.legend.labels.boxWidth = 14;
+        Chart.defaults.plugins.legend.labels.boxHeight = 14;
+
+        const numberFmt = new Intl.NumberFormat('pt-BR');
+        const moneyFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        const baseGrid = {
+            color: 'rgba(148,163,184,0.25)',
+            borderDash: [4, 4],
+            drawTicks: false
+        };
+
+        function formatBRL(value) {
+            return moneyFmt.format(value || 0);
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                kpiSection.classList.add('loading-dim');
+            } else {
+                kpiSection.classList.remove('loading-dim');
+            }
+        }
+
+        function buildOptions(type, yFormatter) {
+            if (type === 'pie') {
+                return {
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.label}: ${numberFmt.format(ctx.parsed)}`
+                            }
+                        }
+                    }
+                };
+            }
+
+            return {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const val = ctx.parsed.y;
+                                return yFormatter ? yFormatter(val) : numberFmt.format(val);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { autoSkip: true, maxRotation: 0 }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: baseGrid,
+                        ticks: {
+                            callback: val => yFormatter ? yFormatter(val) : numberFmt.format(val)
+                        }
+                    }
+                }
+            };
+        }
+
+        function ensureChart(id, type, labels, data, options = {}) {
+            const ctx = document.getElementById(id).getContext('2d');
+            const dataset = {
+                label: options.label || '',
+                data,
+                backgroundColor: options.backgroundColor || palette.primary,
+                borderColor: options.borderColor || palette.primary,
+                borderWidth: 2,
+                borderRadius: type === 'bar' ? 8 : 0,
+                fill: options.fill || false,
+                tension: 0.35,
+                hoverBackgroundColor: options.hoverBackgroundColor || options.backgroundColor || palette.primary,
+                hoverBorderColor: options.hoverBorderColor || options.borderColor || palette.primary
+            };
+
+            const config = {
+                type,
+                data: { labels, datasets: [dataset] },
+                options: buildOptions(type, options.yFormatter)
+            };
+
+            if (charts[id]) {
+                charts[id].data.labels = labels;
+                charts[id].data.datasets[0].data = data;
+                charts[id].data.datasets[0].backgroundColor = dataset.backgroundColor;
+                charts[id].data.datasets[0].borderColor = dataset.borderColor;
+                charts[id].options = config.options;
+                charts[id].update();
+                return;
+            }
+
+            charts[id] = new Chart(ctx, config);
+        }
+
+        async function loadDashboard() {
+            const month = monthSelect.value;
+            const year = yearSelect.value;
+            setLoading(true);
+            try {
+                const res = await fetch(`/admin/dashboard/data?month=${month}&year=${year}`);
+                const payload = await res.json();
+                if (!res.ok) throw new Error(payload.error || 'Erro ao carregar dados');
+
+                const kpis = payload.kpis;
+                document.getElementById('kpiClasses').textContent = kpis.total_classes;
+                document.getElementById('kpiCancelled').textContent = kpis.cancelled_classes;
+                document.getElementById('kpiStudents').textContent = kpis.unique_students;
+                document.getElementById('kpiEnrollments').textContent = kpis.total_enrollments;
+                document.getElementById('kpiRevenue').textContent = formatBRL(kpis.revenue_brl || 0);
+                document.getElementById('kpiCancelRate').textContent = `${kpis.cancel_rate}%`;
+                document.getElementById('kpiOccupancy').textContent = `${kpis.avg_occupancy}%`;
+
+                const chartsData = payload.charts;
+                ensureChart('classesChart', 'bar', chartsData.classes_per_month.labels, chartsData.classes_per_month.data, { label: 'Aulas', backgroundColor: palette.primary });
+                ensureChart('studentsChart', 'line', chartsData.students_per_month.labels, chartsData.students_per_month.data, { label: 'Alunos únicos', borderColor: palette.accent, backgroundColor: palette.accent, fill: false });
+                ensureChart('revenueChart', 'bar', chartsData.revenue_per_month.labels, chartsData.revenue_per_month.data, { label: 'Arrecadação (R$)', backgroundColor: palette.success, yFormatter: val => moneyFmt.format(val) });
+                ensureChart('cancelledChart', 'bar', chartsData.cancelled_per_month.labels, chartsData.cancelled_per_month.data, { label: 'Canceladas', backgroundColor: palette.danger });
+                const piePalette = [palette.primary, palette.success, palette.warning, palette.danger, palette.accent, palette.gray];
+                const pieColors = chartsData.status_pie.labels.map((_, idx) => piePalette[idx % piePalette.length]);
+                ensureChart('statusChart', 'pie', chartsData.status_pie.labels, chartsData.status_pie.data, { label: 'Inscrições', backgroundColor: pieColors, borderColor: '#fff' });
+                ensureChart('weekdayChart', 'bar', chartsData.weekday_occupancy.labels, chartsData.weekday_occupancy.data, { label: 'Ocupação (%)', backgroundColor: palette.accent, yFormatter: val => `${val}%` });
+            } catch (err) {
+                console.error(err);
+                alert(err.message || 'Erro ao carregar dashboard');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        refreshBtn.addEventListener('click', loadDashboard);
+        monthSelect.addEventListener('change', loadDashboard);
+        yearSelect.addEventListener('change', loadDashboard);
+
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+</body>
+</html>

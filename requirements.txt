@@ -1,0 +1,18 @@
+# Dependências do Sistema de Agendamento de Futevôlei
+
+# Framework web
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+
+# Banco de dados
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.25
+
+# Variáveis de ambiente
+python-dotenv==1.0.0
+
+# Mercado Pago SDK
+mercadopago==2.2.1
+
+# Segurança (hash de senhas)
+Werkzeug==3.0.1

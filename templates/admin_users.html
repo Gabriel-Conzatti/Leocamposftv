@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Usuários - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-0">👥 Gerenciar Usuários</h1>
+            <p class="text-muted">Visualizar, editar e deletar contas de usuários</p>
+        </div>
+        <div class="col-md-4 text-right">
+            <a href="{{ url_for('routes.list_classes') }}" class="btn btn-secondary">
+                ← Voltar ao Painel
+            </a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-body">
+            {% if users %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Email</th>
+                                <th>Inscrições</th>
+                                <th>Pagamentos</th>
+                                <th>Cadastro</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ user.email }}</strong>
+                                        {% if user.role == 'ADMIN' %}
+                                            <span class="badge badge-primary">Admin</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set enrollment_count = user.enrollments|length %}
+                                        <span class="badge badge-info">{{ enrollment_count }}</span>
+                                    </td>
+                                    <td>
+                                        {% set payment_count = user.payments|length %}
+                                        <span class="badge badge-warning">{{ payment_count }}</span>
+                                    </td>
+                                    <td>
+                                        {{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('routes.view_user_details', user_id=user.id) }}" 
+                                           class="btn btn-sm btn-info">
+                                            Ver Detalhes
+                                        </a>
+                                        
+                                        {% if user.id != session.user_id %}
+                                            <form method="POST" action="{{ url_for('routes.delete_user', user_id=user.id) }}" 
+                                                  style="display: inline;"
+                                                  onsubmit="return confirm('⚠️ Tem certeza que deseja deletar {{ user.email }}?');">
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    🗑️ Deletar
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-secondary" disabled>
+                                                Você
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-center text-muted py-4">
+                    Nenhum usuário encontrado
+                </p>
+            {% endif %}
+        </div>
+        <div class="card-footer bg-light">
+            <small class="text-muted">
+                Total: <strong>{{ users|length }}</strong> usuário(s)
+            </small>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-4">
+        <h5>📝 Informações</h5>
+        <ul>
+            <li>Ao deletar um usuário, todas as suas inscrições e pagamentos serão removidos</li>
+            <li>Você não pode deletar sua própria conta através dessa interface</li>
+            <li>Admins com acesso ao banco de dados podem restaurar dados deletados</li>
+        </ul>
+    </div>
+</div>
+
+{% endblock %}

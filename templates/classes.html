@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aulas Disponíveis - Sistema de Futevôlei</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm" style="background: var(--primary-dark);">
+        <div class="container-fluid px-3">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-light d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNav">☰</button>
+                <a class="navbar-brand" href="{{ url_for('routes.list_classes') }}">Leo Campos | Futevôlei</a>
+            </div>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span class="text-white d-none d-sm-inline">Olá, {{ session.user_name }}</span>
+                <a href="{{ url_for('routes.user_profile') }}" class="text-decoration-none" title="Meu perfil">
+                    <div class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center" style="width:36px;height:36px;">{{ session.user_name[:2] }}</div>
+                </a>
+                
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasNav" style="background: var(--primary-dark); color: white;">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">Menu</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav flex-column gap-2">
+                <li><a class="nav-link text-white" href="{{ url_for('routes.list_classes') }}">📅 Aulas</a></li>
+                <li><a class="nav-link text-white" href="{{ url_for('routes.user_profile') }}">👤 Meu perfil</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="container" style="padding-top: 96px; padding-bottom: 48px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <p class="text-muted mb-1">Agenda</p>
+                <h2 class="mb-0" style="font-family:'Montserrat',sans-serif;">Aulas Disponíveis</h2>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% if classes %}
+            <div class="row g-4">
+                {% for class in classes %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="card-title mb-0">{{ class.title }}</h5>
+                                    {% if class.status == 'CANCELLED' %}
+                                        <span class="status-dot text-danger">Cancelada</span>
+                                    {% elif class.is_full() %}
+                                        <span class="status-dot text-danger">Lotada</span>
+                                    {% else %}
+                                        <span class="status-dot text-success">Disponível</span>
+                                    {% endif %}
+                                </div>
+                                <div class="class-card-time mb-2">{{ class.time.strftime('%H:%M') }}</div>
+                                <div class="d-flex flex-wrap gap-3 class-card-meta mb-3">
+                                    <span>📅 {{ class.date.strftime('%d/%m/%Y') }}</span>
+                                    <span>👥 {{ class.get_available_spots() }}/{{ class.capacity }}</span>
+                                    <span>💰 R$ {{ "%.2f"|format(class.price) }}</span>
+                                </div>
+                                <div class="mb-3">
+                                {% set enrollment = enrollment_map.get(class.id) %}
+                                {% if enrollment and enrollment.status == 'CONFIRMED' %}
+                                    <div class="mb-2">
+                                        <span class="badge bg-success">✓ Você está inscrito</span>
+                                    </div>
+                                    <a href="{{ url_for('routes.class_detail', class_id=class.id) }}" class="btn btn-outline-success w-100 mb-2">Ver detalhes</a>
+                                    <form method="POST" action="{{ url_for('routes.cancel_enrollment', enrollment_id=enrollment.id) }}">
+                                        <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Deseja cancelar sua inscrição? Pagamentos não são estornados automaticamente.')">Cancelar inscrição</button>
+                                    </form>
+                                {% elif enrollment and enrollment.status == 'AWAITING_PAYMENT' %}
+                                    <div class="mb-2">
+                                        <span class="badge bg-warning text-dark">⏳ Pagamento pendente</span>
+                                    </div>
+                                    <a href="{{ url_for('routes.payment_page', enrollment_id=enrollment.id) }}" class="btn btn-danger w-100 mb-2">Pagar agora</a>
+                                    <form method="POST" action="{{ url_for('routes.cancel_enrollment', enrollment_id=enrollment.id) }}">
+                                        <button type="submit" class="btn btn-outline-secondary w-100">Cancelar inscrição</button>
+                                    </form>
+                                {% elif class.status == 'CANCELLED' %}
+                                    <span class="badge bg-danger">Aula cancelada</span>
+                                    <small class="d-block text-muted">Entraremos em contato sobre estorno se você pagou.</small>
+                                {% elif class.is_full() %}
+                                    <span class="badge bg-danger">✗ Lotado</span>
+                                {% else %}
+                                    <a href="{{ url_for('routes.class_detail', class_id=class.id) }}" class="btn btn-primary w-100">Ver detalhes</a>
+                                {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <p class="mb-0">Nenhuma aula disponível no momento.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
