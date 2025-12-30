@@ -51,3 +51,30 @@ if __name__ == '__main__':
     
     print("🚀 Servidor iniciado em http://localhost:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
+
+@app.get("/debug/db")
+def debug_db():
+    try:
+        u = make_url(DATABASE_URL)
+        info = {
+            "drivername": u.drivername,
+            "host": u.host,
+            "port": u.port,
+            "database": u.database,
+            "username": u.username,
+        }
+        with engine.connect() as conn:
+            who = conn.execute(text("select current_user")).scalar()
+            db = conn.execute(text("select current_database()")).scalar()
+        return {
+            "url": info,
+            "current_user": who,
+            "current_database": db
+        }, 200
+    except Exception as e:
+        app.logger.exception("DEBUG DB FAILED")
+        return {"ok": False, "error": str(e)}, 500
