@@ -1,5 +1,5 @@
 # Dependências do Sistema de Agendamento de Futevôlei
-
+gunicorn
 # Framework web
 Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
