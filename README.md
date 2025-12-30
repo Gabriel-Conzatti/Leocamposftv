@@ -41,11 +41,11 @@ pip install -r requirements.txt
 O arquivo `.env` já está configurado com:
 
 ```env
-DATABASE_URL=postgresql+psycopg://futevolei_user:9293@localhost:5432/futevolei_scheduler
-SECRET_KEY=e7c1a9c7d3f84b1a9a8f9e7d3c2b1a0f8e9d7c6b5a4f3e2d1c0b9a8f7e6d5c4
+DATABASE_URL=
+SECRET_KEY=
 PIX_PROVIDER=mercadopago
-MERCADOPAGO_ACCESS_TOKEN=APP_USR-8277485876313752-032412-9704379ed482c37649b572efa377aab9-301512742
-BASE_URL=http://localhost:5000
+MERCADOPAGO_ACCESS_TOKEN=
+BASE_URL=
 ```
 
 ⚠️ **IMPORTANTE:** O Access Token do Mercado Pago no `.env` é o fornecido por você. Para produção, use suas próprias credenciais.
