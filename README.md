@@ -13,7 +13,7 @@ Sistema web completo para agendamento e pagamento automático de aulas de futev�
 
 - Python 3.8 ou superior
 - PostgreSQL instalado e rodando
-- Banco de dados `futevolei_scheduler` já criado
+- Banco de dados já criado
 - Conta no Mercado Pago com Access Token
 
 ## 🔧 Instalação
@@ -52,7 +52,7 @@ BASE_URL=
 
 ### 4. Verificar banco de dados
 
-Certifique-se de que o PostgreSQL está rodando e o banco `futevolei_scheduler` existe com as tabelas:
+Certifique-se de que o PostgreSQL está rodando e o banco existe com as tabelas:
 - users
 - classes
 - enrollments
