@@ -1,8 +1,26 @@
 # Render Blueprint - Deploy automático
-# Frontend (Vite/React) vai no Vercel
-# Backend (Node.js/Express) vai no Render
+# Frontend + Backend + PostgreSQL - Tudo no Render
 
 services:
+  # Frontend (Static Site)
+  - type: web
+    name: futevolei-frontend
+    runtime: static
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: futevolei-api
+          envVarKey: RENDER_EXTERNAL_URL
+
   # Backend API
   - type: web
     name: futevolei-api
@@ -23,7 +41,10 @@ services:
       - key: JWT_EXPIRE
         value: 7d
       - key: FRONTEND_URL
-        sync: false
+        fromService:
+          type: web
+          name: futevolei-frontend
+          envVarKey: RENDER_EXTERNAL_URL
 
 databases:
   - name: futevolei-db

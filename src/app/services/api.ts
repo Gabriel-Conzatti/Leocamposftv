@@ -1,7 +1,10 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Aula, APIResponse } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Em produção, VITE_API_URL vem do Render (ex: https://futevolei-api.onrender.com)
+// Adiciona /api se necessário
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
 
 class APIService {
   private api: AxiosInstance;
