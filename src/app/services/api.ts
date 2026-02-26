@@ -184,6 +184,15 @@ class APIService {
     }
   }
 
+  async listarInscritosAula(aulaId: string) {
+    try {
+      const response = await this.api.get<APIResponse>(`/aulas/${aulaId}/inscritos`);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // ===== INSCRIÇÕES =====
   async inscreverAula(aulaId: string) {
     try {

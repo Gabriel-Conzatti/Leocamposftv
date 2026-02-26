@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { MapPin, Users, DollarSign, Plus, LogOut, Trash2, Filter, RefreshCw, Pencil, User, Edit2, Calendar, Clock } from 'lucide-react';
+import { MapPin, Users, DollarSign, Plus, LogOut, Trash2, Filter, RefreshCw, Pencil, User, Edit2, Calendar, Clock, Eye, Mail, Phone } from 'lucide-react';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,10 @@ export function ProfessorDashboard({
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mostrarModalPerfil, setMostrarModalPerfil] = useState(false);
+  const [isInscritosDialogOpen, setIsInscritosDialogOpen] = useState(false);
+  const [inscritosAula, setInscritosAula] = useState<any[]>([]);
+  const [loadingInscritos, setLoadingInscritos] = useState(false);
+  const [selectedAulaTitulo, setSelectedAulaTitulo] = useState('');
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
@@ -150,6 +155,22 @@ export function ProfessorDashboard({
 
   const getInscricoesAula = (aulaId: string) => {
     return inscricoes.filter(i => i.aula_id === aulaId);
+  };
+
+  const handleVerInscritos = async (aulaId: string, aulaTitulo: string) => {
+    setSelectedAulaTitulo(aulaTitulo);
+    setLoadingInscritos(true);
+    setIsInscritosDialogOpen(true);
+    try {
+      const response = await api.listarInscritosAula(aulaId);
+      setInscritosAula((response as any).inscricoes || []);
+    } catch (error) {
+      console.error('Erro ao carregar inscritos:', error);
+      toast.error('Erro ao carregar lista de inscritos');
+      setInscritosAula([]);
+    } finally {
+      setLoadingInscritos(false);
+    }
   };
 
   const getStatusPagamentoStats = (aulaId: string) => {
@@ -607,6 +628,16 @@ export function ProfessorDashboard({
                                   <Button 
                                     variant="outline" 
                                     size="sm"
+                                    className="h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm"
+                                    onClick={() => handleVerInscritos(aula.id, aula.titulo)}
+                                    title="Ver inscritos"
+                                  >
+                                    <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
+                                    <span className="hidden sm:inline">Inscritos</span>
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
                                     className="text-red-500 h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm"
                                     onClick={() => {
                                       if (confirm('Tem certeza que deseja deletar esta aula?')) {
@@ -836,6 +867,70 @@ export function ProfessorDashboard({
         onOpenChange={setMostrarModalPerfil}
         userName={professorNome}
       />
+
+      {/* Modal de Inscritos na Aula */}
+      <Dialog open={isInscritosDialogOpen} onOpenChange={setIsInscritosDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Alunos Inscritos</DialogTitle>
+            <DialogDescription>{selectedAulaTitulo}</DialogDescription>
+          </DialogHeader>
+          {loadingInscritos ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : inscritosAula.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+              <p>Nenhum aluno inscrito nesta aula</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {inscritosAula.map((inscricao: any) => (
+                <Card key={inscricao.id} className="bg-gray-50">
+                  <CardContent className="py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{inscricao.aluno?.nome || 'Nome não disponível'}</p>
+                        <div className="flex flex-col gap-1 mt-1 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            <span>{inscricao.aluno?.email || '-'}</span>
+                          </div>
+                          {inscricao.aluno?.telefone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              <span>{inscricao.aluno?.telefone}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge 
+                          className={
+                            inscricao.pagamento?.status === 'aprovado' 
+                              ? 'bg-green-500 text-white' 
+                              : inscricao.pagamento?.status === 'pendente'
+                              ? 'bg-yellow-500 text-white'
+                              : 'bg-gray-500 text-white'
+                          }
+                        >
+                          {inscricao.pagamento?.status === 'aprovado' ? 'Pago' : 
+                           inscricao.pagamento?.status === 'pendente' ? 'Pendente' : 
+                           inscricao.status === 'confirmada' ? 'Confirmado' : 'Pendente'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              <div className="pt-2 border-t text-sm text-gray-500 text-center">
+                Total: {inscritosAula.length} {inscritosAula.length === 1 ? 'aluno' : 'alunos'}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

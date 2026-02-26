@@ -473,3 +473,69 @@ export const cancelarAulaComNotificacao = asyncHandler(
     });
   }
 );
+
+// Listar inscritos de uma aula (admin)
+export const listarInscritosAula = asyncHandler(async (req: Request, res: Response) => {
+  const { aulaId } = req.params;
+
+  if (!aulaId) {
+    throw new AppError(400, 'ID da aula é obrigatório');
+  }
+
+  const aula = await prisma.aula.findUnique({
+    where: { id: aulaId },
+    include: {
+      inscricoes: {
+        include: {
+          aluno: {
+            select: {
+              id: true,
+              nome: true,
+              email: true,
+              telefone: true,
+            },
+          },
+          pagamento: {
+            select: {
+              id: true,
+              valor: true,
+              metodo: true,
+              status: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!aula) {
+    throw new AppError(404, 'Aula não encontrada');
+  }
+
+  // Verificar se é admin ou professor da aula
+  if (aula.professor_id !== req.usuario!.id && !req.usuario!.isAdmin) {
+    throw new AppError(403, 'Você não tem permissão para ver os inscritos desta aula');
+  }
+
+  const inscritos = aula.inscricoes.map(inscricao => ({
+    id: inscricao.id,
+    status: inscricao.status,
+    aluno: inscricao.aluno,
+    pagamento: inscricao.pagamento,
+    createdAt: inscricao.createdAt,
+  }));
+
+  res.json({
+    sucesso: true,
+    mensagem: `${inscritos.length} inscritos encontrados`,
+    dados: {
+      aula: {
+        id: aula.id,
+        titulo: aula.titulo,
+        data: aula.data.toISOString().split('T')[0],
+        horario: aula.horario,
+      },
+      inscritos,
+    },
+  });
+});
