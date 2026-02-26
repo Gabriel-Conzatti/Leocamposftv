@@ -14,10 +14,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: futevolei-api
-          envVarKey: RENDER_EXTERNAL_URL
+        sync: false
 
   # Backend API
   - type: web
