@@ -406,17 +406,6 @@ export function ProfessorDashboard({
 
       {/* Main Content */}
       <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-        {aulas.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-gray-500 mb-4 text-sm sm:text-base">Nenhuma aula criada ainda</p>
-              <Button style={{ backgroundColor: '#0D5A6E' }} onClick={() => setIsCreateDialogOpen(true)} className="h-10 sm:h-12">
-                <Plus className="w-4 h-4 mr-2" />
-                Criar Primeira Aula
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
           <div className="space-y-4 sm:space-y-6">
             {/* Filter Section */}
             <Card className="bg-white">
@@ -564,7 +553,13 @@ export function ProfessorDashboard({
                       <Card className="bg-white">
                         <CardContent className="pt-6 text-center">
                           <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                          <p className="text-gray-500">Nenhuma aula próxima encontrada</p>
+                          <p className="text-gray-500 mb-4">{aulas.length === 0 ? 'Nenhuma aula criada ainda' : 'Nenhuma aula próxima encontrada'}</p>
+                          {aulas.length === 0 && (
+                            <Button style={{ backgroundColor: '#0D5A6E' }} onClick={() => setIsCreateDialogOpen(true)}>
+                              <Plus className="w-4 h-4 mr-2" />
+                              Criar Primeira Aula
+                            </Button>
+                          )}
                         </CardContent>
                       </Card>
                     ) : (
@@ -707,6 +702,16 @@ export function ProfessorDashboard({
                                     </div>
                                   </div>
                                 </div>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm"
+                                  onClick={() => handleVerInscritos(aula.id, aula.titulo)}
+                                  title="Ver participantes"
+                                >
+                                  <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
+                                  <span className="hidden sm:inline">Ver Participantes</span>
+                                </Button>
                               </div>
                             </CardContent>
                           </Card>
@@ -755,7 +760,6 @@ export function ProfessorDashboard({
               </Tabs>
             </div>
           </div>
-        )}
       </main>
 
       {/* Dialog de Edição */}
