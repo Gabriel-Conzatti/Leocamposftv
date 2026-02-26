@@ -1,0 +1,297 @@
+import { Request, Response } from 'express';
+import { asyncHandler, AppError } from '../utils/errors.js';
+import { gerarToken, verificarToken } from '../utils/jwt.js';
+import { hashSenha, compararSenha } from '../utils/bcrypt.js';
+import { validar, registroSchema, loginSchema } from '../utils/validacoes.js';
+import prisma from '../lib/prisma.js';
+import { enviarEmail, emailRecuperacaoSenha, emailSenhaAlterada } from '../services/emailService.js';
+import jwt from 'jsonwebtoken';
+
+export const registroController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { nome, email, telefone, senha, confirmarSenha } = req.body;
+
+    // Validar dados de entrada com Joi
+    const { valido, mensagens, value } = validar(registroSchema, {
+      nome,
+      email,
+      telefone,
+      senha,
+      confirmarSenha,
+    });
+
+    if (!valido) {
+      throw new AppError(400, mensagens || 'Dados inválidos');
+    }
+
+    // Verificar se email já existe
+    const usuarioExistente = await prisma.usuario.findUnique({
+      where: { email: value.email },
+    });
+
+    if (usuarioExistente) {
+      throw new AppError(400, 'Email já registrado');
+    }
+
+    // Verificar se telefone já existe
+    const usuarioComTelefone = await prisma.usuario.findUnique({
+      where: { telefone: value.telefone },
+    });
+
+    if (usuarioComTelefone) {
+      throw new AppError(400, 'Telefone já registrado');
+    }
+
+    // Hash da senha com bcrypt
+    const senhaHash = await hashSenha(value.senha);
+
+    // Criar novo usuário
+    const novoUsuario = await prisma.usuario.create({
+      data: {
+        nome: value.nome,
+        email: value.email,
+        telefone: value.telefone,
+        senha: senhaHash,
+      },
+    });
+
+    // Gerar token
+    const token = gerarToken({
+      id: novoUsuario.id,
+      email: novoUsuario.email,
+      isAdmin: novoUsuario.isAdmin,
+    });
+
+    const { senha: _, ...usuarioSemSenha } = novoUsuario;
+
+    res.status(201).json({
+      sucesso: true,
+      mensagem: 'Usuário registrado com sucesso',
+      dados: {
+        usuario: usuarioSemSenha,
+        token,
+      },
+    });
+  }
+);
+
+export const loginController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email, senha } = req.body;
+
+    // Validar dados de entrada com Joi
+    const { valido, mensagens, value } = validar(loginSchema, {
+      email,
+      senha,
+    });
+
+    if (!valido) {
+      throw new AppError(400, mensagens || 'Email ou senha inválidos');
+    }
+
+    // Buscar usuário no banco
+    const usuario = await prisma.usuario.findUnique({
+      where: { email: value.email },
+    });
+
+    if (!usuario) {
+      throw new AppError(401, 'Credenciais inválidas');
+    }
+
+    // Verificar senha com bcrypt
+    const senhaValida = await compararSenha(value.senha, usuario.senha);
+
+    if (!senhaValida) {
+      throw new AppError(401, 'Credenciais inválidas');
+    }
+
+    // Gerar token
+    const token = gerarToken({
+      id: usuario.id,
+      email: usuario.email,
+      isAdmin: usuario.isAdmin,
+    });
+
+    const { senha: _, ...usuarioSemSenha } = usuario;
+
+    res.status(200).json({
+      sucesso: true,
+      mensagem: 'Login realizado com sucesso',
+      dados: {
+        usuario: usuarioSemSenha,
+        token,
+      },
+    });
+  }
+);
+
+export const logoutController = asyncHandler(
+  async (req: Request, res: Response) => {
+    // Token é gerenciado no frontend (localStorage)
+    // Backend apenas confirma logout
+    res.json({
+      sucesso: true,
+      mensagem: 'Logout realizado com sucesso',
+    });
+  }
+);
+
+/**
+ * Solicitar Recuperação de Senha
+ * POST /api/auth/solicitar-recuperacao
+ */
+export const solicitarRecuperacaoSenha = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      throw new AppError(400, 'Email é obrigatório');
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new AppError(400, 'Email inválido');
+    }
+
+    // Buscar usuário pelo email
+    const usuario = await prisma.usuario.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    // Por segurança, sempre retornar sucesso mesmo se usuário não existir
+    // (não revelar se email está cadastrado ou não)
+    if (!usuario) {
+      console.log(`⚠️ Tentativa de recuperação para email não cadastrado: ${email}`);
+      return res.json({
+        sucesso: true,
+        mensagem: 'Se o email estiver cadastrado, você receberá um link de recuperação',
+      });
+    }
+
+    // Gerar token JWT temporário (expira em 1 hora)
+    const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_super_segura_aqui';
+    const tokenRecuperacao = jwt.sign(
+      {
+        id: usuario.id,
+        email: usuario.email,
+        tipo: 'recuperacao-senha',
+      },
+      JWT_SECRET,
+      { expiresIn: '1h' } // Token expira em 1 hora
+    );
+
+    console.log(`📧 Enviando email de recuperação para: ${usuario.email}`);
+
+    // Enviar email com link de recuperação
+    const assunto = '[FutevoleiPro] Recuperação de Senha';
+    const html = emailRecuperacaoSenha(usuario.nome, tokenRecuperacao);
+
+    const emailEnviado = await enviarEmail({
+      para: usuario.email,
+      assunto,
+      html,
+    });
+
+    if (!emailEnviado) {
+      console.error('❌ Falha ao enviar email de recuperação');
+      // Não revelar ao usuário que o email falhou (segurança)
+    }
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Se o email estiver cadastrado, você receberá um link de recuperação',
+    });
+  }
+);
+
+/**
+ * Resetar Senha com Token
+ * POST /api/auth/resetar-senha
+ */
+export const resetarSenha = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { token, novaSenha, confirmarNovaSenha } = req.body;
+
+    // Validar campos obrigatórios
+    if (!token || typeof token !== 'string') {
+      throw new AppError(400, 'Token é obrigatório');
+    }
+
+    if (!novaSenha || typeof novaSenha !== 'string') {
+      throw new AppError(400, 'Nova senha é obrigatória');
+    }
+
+    if (!confirmarNovaSenha || typeof confirmarNovaSenha !== 'string') {
+      throw new AppError(400, 'Confirmação de senha é obrigatória');
+    }
+
+    // Validar senhas iguais
+    if (novaSenha !== confirmarNovaSenha) {
+      throw new AppError(400, 'As senhas não coincidem');
+    }
+
+    // Validar força da senha
+    if (novaSenha.length < 6) {
+      throw new AppError(400, 'Senha deve ter no mínimo 6 caracteres');
+    }
+
+    // Verificar e decodificar token
+    let payload: any;
+    try {
+      const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_super_segura_aqui';
+      payload = jwt.verify(token, JWT_SECRET) as any;
+    } catch (error: any) {
+      if (error.name === 'TokenExpiredError') {
+        throw new AppError(400, 'Token expirado. Solicite uma nova recuperação de senha');
+      }
+      throw new AppError(400, 'Token inválido');
+    }
+
+    // Verificar se é token de recuperação
+    if (payload.tipo !== 'recuperacao-senha') {
+      throw new AppError(400, 'Token inválido para recuperação de senha');
+    }
+
+    // Buscar usuário
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: payload.id },
+    });
+
+    if (!usuario) {
+      throw new AppError(404, 'Usuário não encontrado');
+    }
+
+    // Hash da nova senha
+    const novaSenhaHash = await hashSenha(novaSenha);
+
+    // Atualizar senha no banco
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { senha: novaSenhaHash },
+    });
+
+    console.log(`✅ Senha resetada com sucesso para: ${usuario.email}`);
+
+    // Enviar email de confirmação
+    const dataHora = new Date().toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+
+    const assunto = '[FutevoleiPro] Senha Alterada com Sucesso';
+    const html = emailSenhaAlterada(usuario.nome, dataHora);
+
+    await enviarEmail({
+      para: usuario.email,
+      assunto,
+      html,
+    });
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Senha alterada com sucesso! Você já pode fazer login com a nova senha',
+    });
+  }
+);

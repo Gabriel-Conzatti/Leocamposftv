@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  nome      String
+  telefone  String?    @unique
+  senha     String
+  isAdmin   Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  aulas      Aula[]
+  inscricoes Inscricao[]
+  pagamentos Pagamento[]
+
+  @@map("usuarios")
+}
+
+model Aula {
+  id              String      @id @default(cuid())
+  titulo          String
+  descricao       String?
+  professor_id    String
+  professor       Usuario     @relation(fields: [professor_id], references: [id], onDelete: Cascade)
+  data            DateTime
+  horario         String      // formato HH:MM
+  duracao         Int         // em minutos
+  local           String
+  preco           Float
+  vagas           Int
+  vagasDisponiveis Int
+  status          String      @default("aberta") // "aberta", "cheia", "cancelada"
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  inscricoes Inscricao[]
+  presencas  Presenca[]
+
+  @@map("aulas")
+}
+
+model Inscricao {
+  id        String   @id @default(cuid())
+  aluno_id  String
+  aluno     Usuario  @relation(fields: [aluno_id], references: [id], onDelete: Cascade)
+  aula_id   String
+  aula      Aula     @relation(fields: [aula_id], references: [id], onDelete: Cascade)
+  status    String   @default("pendente") // "pendente", "confirmada", "cancelada"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  presenca Presenca?
+  pagamento Pagamento?
+
+  @@unique([aluno_id, aula_id])
+  @@map("inscricoes")
+}
+
+model Presenca {
+  id           String   @id @default(cuid())
+  inscricao_id String   @unique
+  inscricao    Inscricao @relation(fields: [inscricao_id], references: [id], onDelete: Cascade)
+  aula_id      String
+  aula         Aula     @relation(fields: [aula_id], references: [id], onDelete: Cascade)
+  presente     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("presencas")
+}
+
+model Pagamento {
+  id               String   @id @default(cuid())
+  aluno_id         String
+  aluno            Usuario  @relation(fields: [aluno_id], references: [id], onDelete: Cascade)
+  inscricao_id     String   @unique
+  inscricao        Inscricao @relation(fields: [inscricao_id], references: [id], onDelete: Cascade)
+  valor            Float
+  metodo           String   // "pix" ou "cartao"
+  status           String   @default("pendente") // "pendente", "confirmado", "falhou"
+  
+  // PIX specific
+  pixQrCode        String?
+  pixCopyPaste     String?
+  
+  // Mercado Pago specific
+  mercadoPagoId    String?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("pagamentos")
+}
