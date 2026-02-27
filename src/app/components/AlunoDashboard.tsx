@@ -353,12 +353,30 @@ export function AlunoDashboard({
                                 {!isAdmin && (
                                   <>
                                     {minhaInsc ? (
-                                      <div className="flex items-center justify-center gap-2 p-2 sm:p-3 bg-green-50 rounded-lg text-xs sm:text-sm">
-                                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                                        <span className="font-medium text-green-700">
-                                          {minhaInsc.status === 'pendente' ? 'Aguardando pagamento' : 'Inscrito'}
-                                        </span>
-                                      </div>
+                                      minhaInsc.status === 'pendente' ? (
+                                        <Button
+                                          className="w-full h-10 sm:h-12 text-xs sm:text-sm bg-amber-500 hover:bg-amber-600"
+                                          onClick={() => handleInscrever(aula.id)}
+                                          disabled={inscrevendoAulaId === aula.id}
+                                        >
+                                          {inscrevendoAulaId === aula.id ? (
+                                            <>
+                                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                              Carregando...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <DollarSign className="w-4 h-4 mr-2" />
+                                              Realizar pagamento
+                                            </>
+                                          )}
+                                        </Button>
+                                      ) : (
+                                        <div className="flex items-center justify-center gap-2 p-2 sm:p-3 bg-green-50 rounded-lg text-xs sm:text-sm">
+                                          <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                                          <span className="font-medium text-green-700">Inscrito</span>
+                                        </div>
+                                      )
                                     ) : (
                                       <Button
                                         className="w-full h-10 sm:h-12 text-xs sm:text-sm"
