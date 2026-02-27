@@ -179,18 +179,24 @@ export function AlunoDashboard({
 
   const getPagamentoStatusColor = (status: string) => {
     switch (status) {
-      case 'pago': return 'bg-green-500';
+      case 'pago':
+      case 'confirmado':
+      case 'aprovado': return 'bg-green-500';
       case 'pendente': return 'bg-yellow-500';
-      case 'cancelado': return 'bg-red-500';
+      case 'cancelado':
+      case 'rejeitado': return 'bg-red-500';
       default: return 'bg-gray-500';
     }
   };
 
   const getPagamentoStatusLabel = (status: string) => {
     switch (status) {
-      case 'confirmado': return 'Confirmado';
+      case 'pago':
+      case 'confirmado':
+      case 'aprovado': return 'Pago';
       case 'pendente': return 'Aguardando Pagamento';
-      case 'cancelado': return 'Cancelado';
+      case 'cancelado':
+      case 'rejeitado': return 'Cancelado';
       default: return status;
     }
   };

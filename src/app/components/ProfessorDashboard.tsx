@@ -989,16 +989,18 @@ export function ProfessorDashboard({
                       <div className="flex items-center gap-2">
                         <Badge 
                           className={
-                            inscricao.pagamento?.status === 'aprovado' 
+                            inscricao.pagamento?.status === 'confirmado' || inscricao.pagamento?.status === 'aprovado'
                               ? 'bg-green-500 text-white' 
                               : inscricao.pagamento?.status === 'pendente'
                               ? 'bg-yellow-500 text-white'
                               : inscricao.nomeManual
                               ? 'bg-blue-500 text-white'
+                              : inscricao.status === 'confirmada'
+                              ? 'bg-green-500 text-white'
                               : 'bg-gray-500 text-white'
                           }
                         >
-                          {inscricao.pagamento?.status === 'aprovado' ? 'Pago' : 
+                          {inscricao.pagamento?.status === 'confirmado' || inscricao.pagamento?.status === 'aprovado' ? 'Pago' : 
                            inscricao.pagamento?.status === 'pendente' ? 'Pendente' : 
                            inscricao.nomeManual ? 'Manual' :
                            inscricao.status === 'confirmada' ? 'Confirmado' : 'Pendente'}
