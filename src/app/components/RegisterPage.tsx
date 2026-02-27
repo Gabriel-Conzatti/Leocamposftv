@@ -30,21 +30,20 @@ export function RegisterPage({ onRegister, onBackToLogin }: RegisterPageProps) {
   const [loading, setLoading] = useState(false);
   const [mostrarTermos, setMostrarTermos] = useState(false);
   const [mostrarPrivacidade, setMostrarPrivacidade] = useState(false);
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const validarFormulario = () => {
     // Validações
     if (!formData.nome || !formData.email || !formData.telefone || !formData.senha) {
       toast.error('Preencha todos os campos obrigatórios');
-      return;
+      return false;
     }
 
     // Validação de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       toast.error('Digite um email válido');
-      return;
+      return false;
     }
 
     // Validação de telefone (básica)
@@ -52,18 +51,36 @@ export function RegisterPage({ onRegister, onBackToLogin }: RegisterPageProps) {
     const telefoneLimpo = formData.telefone.replace(/\D/g, '');
     if (!telefoneRegex.test(telefoneLimpo)) {
       toast.error('Digite um telefone válido (10 ou 11 dígitos)');
-      return;
+      return false;
     }
 
     if (formData.senha.length < 6) {
       toast.error('A senha deve ter pelo menos 6 caracteres');
-      return;
+      return false;
     }
 
     if (formData.senha !== formData.confirmarSenha) {
       toast.error('As senhas não coincidem');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validarFormulario()) {
       return;
     }
+
+    // Mostrar popup de confirmação
+    setMostrarConfirmacao(true);
+  };
+
+  const confirmarRegistro = async () => {
+    setMostrarConfirmacao(false);
+    const telefoneLimpo = formData.telefone.replace(/\D/g, '');
 
     setLoading(true);
     try {
@@ -451,6 +468,58 @@ export function RegisterPage({ onRegister, onBackToLogin }: RegisterPageProps) {
           <Button onClick={() => setMostrarPrivacidade(false)} className="w-full" style={{ backgroundColor: '#0D5A6E' }}>
             Fechar
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Confirmação de Termos */}
+      <Dialog open={mostrarConfirmacao} onOpenChange={setMostrarConfirmacao}>
+        <DialogContent className="max-w-sm bg-[#124C5E] border-none rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl text-center">Confirmação</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-center space-y-4">
+            <p className="text-white/90 text-sm leading-relaxed">
+              Ao clicar em confirmar, você declara que leu e aceita os{' '}
+              <button 
+                type="button"
+                onClick={() => {
+                  setMostrarConfirmacao(false);
+                  setMostrarTermos(true);
+                }}
+                className="text-[#FFD966] hover:underline font-medium"
+              >
+                Termos de Uso
+              </button>
+              {' '}e a{' '}
+              <button 
+                type="button"
+                onClick={() => {
+                  setMostrarConfirmacao(false);
+                  setMostrarPrivacidade(true);
+                }}
+                className="text-[#FFD966] hover:underline font-medium"
+              >
+                Política de Privacidade
+              </button>
+              .
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setMostrarConfirmacao(false)}
+                className="flex-1 bg-transparent border-white/30 text-white hover:bg-white/10"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={confirmarRegistro}
+                className="flex-1"
+                style={{ backgroundColor: '#FFD966', color: '#0D5A6E' }}
+              >
+                Confirmar
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
