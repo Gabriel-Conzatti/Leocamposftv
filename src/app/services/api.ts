@@ -238,6 +238,19 @@ class APIService {
       throw this.handleError(error);
     }
   }
+
+  async adicionarInscritoManual(aulaId: string, nome: string, email: string) {
+    try {
+      const response = await this.api.post<APIResponse>('/inscricoes/admin/adicionar', {
+        aulaId,
+        nome,
+        email,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
   // ===== PAGAMENTOS =====
   async criarPreferencaMercadoPago(aulaId: string) {
     try {

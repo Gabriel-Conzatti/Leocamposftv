@@ -6,6 +6,7 @@ import {
   cancelarInscricao,
   atualizarPresenca,
   obterTodasInscricoes,
+  adicionarInscritoManual,
 } from '../controllers/inscricaoController.js';
 import {
   autenticacao,
@@ -17,6 +18,7 @@ const router = Router();
 // Rotas com paths mais específicos PRIMEIRO
 router.get('/usuario/minhas-inscricoes', autenticacao, obterInscricoesUsuario);
 router.get('/aula/:aulaId', autenticacao, obterInscricoesAula);
+router.post('/admin/adicionar', autenticacao, adicionarInscritoManual);
 // Rotas genéricas por último
 router.get('/', autenticacao, obterTodasInscricoes);
 router.post('/', autenticacao, inscreverAula);

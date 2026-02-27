@@ -270,3 +270,99 @@ export const obterTodasInscricoes = asyncHandler(
     });
   }
 );
+
+/**
+ * Adicionar inscrito manualmente (apenas admin)
+ * POST /api/inscricoes/admin/adicionar
+ */
+export const adicionarInscritoManual = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { aulaId, nome, email } = req.body;
+
+    if (!aulaId || !nome || !email) {
+      throw new AppError(400, 'ID da aula, nome e email são obrigatórios');
+    }
+
+    // Verificar se o usuário é admin
+    if (!req.usuario?.isAdmin) {
+      throw new AppError(403, 'Apenas administradores podem adicionar inscritos manualmente');
+    }
+
+    // Verificar se a aula existe e tem vagas
+    const aula = await prisma.aula.findUnique({
+      where: { id: aulaId },
+    });
+
+    if (!aula) {
+      throw new AppError(404, 'Aula não encontrada');
+    }
+
+    if (aula.vagasDisponiveis <= 0) {
+      throw new AppError(400, 'Aula sem vagas disponíveis');
+    }
+
+    // Buscar ou criar o usuário
+    let usuario = await prisma.usuario.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!usuario) {
+      // Criar usuário com senha temporária (pode ser alterada depois)
+      const { hashSenha } = await import('../utils/bcrypt.js');
+      const senhaTemp = await hashSenha('temp123');
+      
+      usuario = await prisma.usuario.create({
+        data: {
+          nome,
+          email: email.toLowerCase(),
+          senha: senhaTemp,
+          isAdmin: false,
+        },
+      });
+    }
+
+    // Verificar se já está inscrito
+    const jaInscrito = await prisma.inscricao.findFirst({
+      where: {
+        aula_id: aulaId,
+        aluno_id: usuario.id,
+      },
+    });
+
+    if (jaInscrito) {
+      throw new AppError(400, 'Este aluno já está inscrito nesta aula');
+    }
+
+    // Criar inscrição como confirmada (adicionado pelo admin)
+    const novaInscricao = await prisma.inscricao.create({
+      data: {
+        aluno_id: usuario.id,
+        aula_id: aulaId,
+        status: 'confirmada',
+      },
+      include: {
+        aluno: {
+          select: { id: true, nome: true, email: true },
+        },
+        aula: {
+          select: { id: true, titulo: true, preco: true },
+        },
+      },
+    });
+
+    // Atualizar vagas disponíveis
+    await prisma.aula.update({
+      where: { id: aulaId },
+      data: {
+        vagasDisponiveis: aula.vagasDisponiveis - 1,
+        status: aula.vagasDisponiveis - 1 === 0 ? 'cheia' : 'aberta',
+      },
+    });
+
+    res.status(201).json({
+      sucesso: true,
+      mensagem: 'Inscrito adicionado com sucesso',
+      dados: novaInscricao,
+    });
+  }
+);

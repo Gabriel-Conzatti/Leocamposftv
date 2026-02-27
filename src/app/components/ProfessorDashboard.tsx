@@ -46,6 +46,10 @@ export function ProfessorDashboard({
   const [inscritosAula, setInscritosAula] = useState<any[]>([]);
   const [loadingInscritos, setLoadingInscritos] = useState(false);
   const [selectedAulaTitulo, setSelectedAulaTitulo] = useState('');
+  const [selectedAulaId, setSelectedAulaId] = useState('');
+  const [mostrarFormNovoInscrito, setMostrarFormNovoInscrito] = useState(false);
+  const [novoInscrito, setNovoInscrito] = useState({ nome: '', email: '' });
+  const [salvandoInscrito, setSalvandoInscrito] = useState(false);
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
@@ -159,8 +163,11 @@ export function ProfessorDashboard({
 
   const handleVerInscritos = async (aulaId: string, aulaTitulo: string) => {
     setSelectedAulaTitulo(aulaTitulo);
+    setSelectedAulaId(aulaId);
     setLoadingInscritos(true);
     setIsInscritosDialogOpen(true);
+    setMostrarFormNovoInscrito(false);
+    setNovoInscrito({ nome: '', email: '' });
     try {
       const response = await api.listarInscritosAula(aulaId);
       setInscritosAula((response as any).inscricoes || []);
@@ -170,6 +177,31 @@ export function ProfessorDashboard({
       setInscritosAula([]);
     } finally {
       setLoadingInscritos(false);
+    }
+  };
+
+  const handleAdicionarInscrito = async () => {
+    if (!novoInscrito.nome || !novoInscrito.email) {
+      toast.error('Preencha nome e email');
+      return;
+    }
+
+    setSalvandoInscrito(true);
+    try {
+      await api.adicionarInscritoManual(selectedAulaId, novoInscrito.nome, novoInscrito.email);
+      toast.success('Inscrito adicionado com sucesso!');
+      setMostrarFormNovoInscrito(false);
+      setNovoInscrito({ nome: '', email: '' });
+      // Recarregar lista de inscritos
+      const response = await api.listarInscritosAula(selectedAulaId);
+      setInscritosAula((response as any).inscricoes || []);
+      // Atualizar dados gerais
+      if (onRefresh) await onRefresh();
+    } catch (error: any) {
+      console.error('Erro ao adicionar inscrito:', error);
+      toast.error(error?.mensagem || 'Erro ao adicionar inscrito');
+    } finally {
+      setSalvandoInscrito(false);
     }
   };
 
@@ -873,17 +905,88 @@ export function ProfessorDashboard({
       />
 
       {/* Modal de Inscritos na Aula */}
-      <Dialog open={isInscritosDialogOpen} onOpenChange={setIsInscritosDialogOpen}>
+      <Dialog open={isInscritosDialogOpen} onOpenChange={(open) => {
+        setIsInscritosDialogOpen(open);
+        if (!open) {
+          setMostrarFormNovoInscrito(false);
+          setNovoInscrito({ nome: '', email: '' });
+        }
+      }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Alunos Inscritos</DialogTitle>
             <DialogDescription>{selectedAulaTitulo}</DialogDescription>
           </DialogHeader>
+          
+          {/* Botão para adicionar novo inscrito */}
+          {!mostrarFormNovoInscrito && !loadingInscritos && (
+            <Button 
+              onClick={() => setMostrarFormNovoInscrito(true)}
+              className="w-full mb-4"
+              variant="outline"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Novo Inscrito
+            </Button>
+          )}
+
+          {/* Formulário de adicionar novo inscrito */}
+          {mostrarFormNovoInscrito && (
+            <Card className="mb-4 border-2 border-dashed border-primary/50">
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="novoNome">Nome do Aluno</Label>
+                  <Input
+                    id="novoNome"
+                    placeholder="Nome completo"
+                    value={novoInscrito.nome}
+                    onChange={(e) => setNovoInscrito({ ...novoInscrito, nome: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="novoEmail">Email do Aluno</Label>
+                  <Input
+                    id="novoEmail"
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    value={novoInscrito.email}
+                    onChange={(e) => setNovoInscrito({ ...novoInscrito, email: e.target.value })}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleAdicionarInscrito} 
+                    disabled={salvandoInscrito}
+                    className="flex-1"
+                  >
+                    {salvandoInscrito ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      'Salvar'
+                    )}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setMostrarFormNovoInscrito(false);
+                      setNovoInscrito({ nome: '', email: '' });
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {loadingInscritos ? (
             <div className="flex justify-center py-8">
               <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
             </div>
-          ) : inscritosAula.length === 0 ? (
+          ) : inscritosAula.length === 0 && !mostrarFormNovoInscrito ? (
             <div className="text-center py-8 text-gray-500">
               <Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
               <p>Nenhum aluno inscrito nesta aula</p>
@@ -928,9 +1031,11 @@ export function ProfessorDashboard({
                   </CardContent>
                 </Card>
               ))}
-              <div className="pt-2 border-t text-sm text-gray-500 text-center">
-                Total: {inscritosAula.length} {inscritosAula.length === 1 ? 'aluno' : 'alunos'}
-              </div>
+              {inscritosAula.length > 0 && (
+                <div className="pt-2 border-t text-sm text-gray-500 text-center">
+                  Total: {inscritosAula.length} {inscritosAula.length === 1 ? 'aluno' : 'alunos'}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
