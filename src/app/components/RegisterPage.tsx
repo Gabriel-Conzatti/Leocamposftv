@@ -308,65 +308,107 @@ export function RegisterPage({ onRegister, onBackToLogin }: RegisterPageProps) {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold" style={{ color: '#0D5A6E' }}>
-              Termos de Uso
+              Termos de Uso e Condições Gerais
             </DialogTitle>
           </DialogHeader>
           <div className="prose prose-sm max-w-none text-gray-700 space-y-4 py-4">
-            <p className="text-xs text-gray-500">Última atualização: 27 de fevereiro de 2026</p>
+            <p className="text-xs text-gray-500">Última atualização: 27 de fevereiro de 2026 | Foro: Comarca de Triunfo/RS</p>
             
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>1. ACEITAÇÃO</h3>
-            <p className="text-sm">Ao acessar ou utilizar a plataforma Leo Campos FTV, o usuário declara que leu, compreendeu e aceita integralmente estes Termos de Uso.</p>
-            
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>2. OBJETO</h3>
-            <p className="text-sm">A plataforma destina-se à gestão de:</p>
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>1. ACEITE E VALIDADE JURÍDICA</h3>
+            <p className="text-sm">Ao criar uma conta, acessar ou utilizar qualquer funcionalidade da plataforma Leo Campos FTV, o usuário declara, para todos os fins de direito, que:</p>
             <ul className="list-disc list-inside text-sm space-y-1">
-              <li>Cadastro de usuários</li>
-              <li>Organização de aulas e atividades esportivas</li>
-              <li>Comunicação administrativa</li>
-              <li>Gestão de pagamentos</li>
+              <li>Leu integralmente estes Termos;</li>
+              <li>Compreendeu todas as cláusulas;</li>
+              <li>Concorda de forma livre, informada e inequívoca;</li>
+              <li>Possui capacidade civil plena para contratar.</li>
+            </ul>
+            <p className="text-sm">O aceite eletrônico possui validade jurídica, nos termos do art. 107 do Código Civil e da legislação aplicável.</p>
+            <p className="text-sm"><strong>Caso não concorde, o usuário deverá cessar imediatamente o uso da plataforma.</strong></p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>2. RESPONSABILIDADE INTEGRAL DO USUÁRIO</h3>
+            <p className="text-sm">O usuário assume responsabilidade exclusiva e integral por:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Veracidade das informações fornecidas;</li>
+              <li>Atualização de seus dados cadastrais;</li>
+              <li>Segurança de login e senha;</li>
+              <li>Todas as atividades realizadas sob sua conta;</li>
+              <li>Uso adequado da plataforma.</li>
+            </ul>
+            <p className="text-sm">A Leo Campos FTV não se responsabiliza por danos decorrentes de:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Uso indevido da conta;</li>
+              <li>Compartilhamento de senha;</li>
+              <li>Acesso por terceiros;</li>
+              <li>Negligência do próprio usuário.</li>
             </ul>
             
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>3. CADASTRO</h3>
-            <p className="text-sm">O usuário compromete-se a:</p>
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>3. INDENIZAÇÃO E RESPONSABILIDADE CIVIL</h3>
+            <p className="text-sm">O usuário concorda em indenizar, defender e isentar a Leo Campos FTV, seus administradores, parceiros e colaboradores de quaisquer:</p>
             <ul className="list-disc list-inside text-sm space-y-1">
-              <li>Fornecer dados verdadeiros</li>
-              <li>Manter sigilo de login e senha</li>
-              <li>Atualizar informações sempre que necessário</li>
+              <li>Reclamações judiciais ou extrajudiciais;</li>
+              <li>Danos diretos ou indiretos;</li>
+              <li>Multas, penalidades ou prejuízos;</li>
+              <li>Honorários advocatícios;</li>
+              <li>Custas processuais;</li>
             </ul>
-            <p className="text-sm">A conta é pessoal e intransferível.</p>
+            <p className="text-sm">decorrentes de: uso indevido da plataforma; violação destes Termos; fornecimento de dados falsos; condutas ilícitas ou fraudulentas.</p>
             
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>4. RESPONSABILIDADES</h3>
-            <p className="text-sm">É proibido:</p>
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>4. LIMITAÇÃO MÁXIMA DE RESPONSABILIDADE</h3>
+            <p className="text-sm">A responsabilidade da Leo Campos FTV, quando aplicável, ficará limitada ao valor efetivamente pago pelo usuário nos últimos 12 (doze) meses.</p>
+            <p className="text-sm">A plataforma não se responsabiliza por:</p>
             <ul className="list-disc list-inside text-sm space-y-1">
-              <li>Inserir dados falsos</li>
-              <li>Utilizar a plataforma para fins ilícitos</li>
-              <li>Tentar comprometer a segurança do sistema</li>
-              <li>Compartilhar credenciais</li>
-            </ul>
-            <p className="text-sm">O descumprimento poderá resultar em suspensão ou exclusão da conta.</p>
-            
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>5. PAGAMENTOS</h3>
-            <p className="text-sm">Os pagamentos realizados por meio da plataforma poderão ser processados por intermediadores financeiros, estando sujeitos às condições informadas no momento da contratação.</p>
-            
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>6. PROPRIEDADE INTELECTUAL</h3>
-            <p className="text-sm">Todos os direitos relacionados à marca, logotipo, layout, sistema e conteúdos da Leo Campos FTV são reservados.</p>
-            
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>7. LIMITAÇÃO DE RESPONSABILIDADE</h3>
-            <p className="text-sm">A Leo Campos FTV não se responsabiliza por:</p>
-            <ul className="list-disc list-inside text-sm space-y-1">
-              <li>Falhas externas de conexão</li>
-              <li>Uso indevido da conta pelo usuário</li>
-              <li>Informações incorretas fornecidas pelo usuário</li>
+              <li>Lucros cessantes;</li>
+              <li>Danos indiretos;</li>
+              <li>Perda de oportunidade;</li>
+              <li>Danos morais decorrentes de mau uso;</li>
+              <li>Falhas de internet ou servidores externos;</li>
+              <li>Ataques cibernéticos fora de seu controle razoável.</li>
             </ul>
             
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>8. SUSPENSÃO OU CANCELAMENTO</h3>
-            <p className="text-sm">A conta poderá ser suspensa ou cancelada em caso de violação destes Termos.</p>
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>5. CONDUTA PROIBIDA</h3>
+            <p className="text-sm">É expressamente proibido:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Utilizar a plataforma para fins ilícitos;</li>
+              <li>Inserir dados falsos ou de terceiros sem autorização;</li>
+              <li>Tentar invadir, hackear ou explorar vulnerabilidades;</li>
+              <li>Realizar engenharia reversa do sistema;</li>
+              <li>Copiar layout, código ou estrutura;</li>
+              <li>Utilizar bots ou automações não autorizadas.</li>
+            </ul>
+            <p className="text-sm">O descumprimento poderá resultar em: bloqueio imediato; exclusão definitiva da conta; adoção de medidas judiciais.</p>
             
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>9. ALTERAÇÕES</h3>
-            <p className="text-sm">Estes Termos poderão ser atualizados a qualquer momento, sendo válidos a partir de sua publicação.</p>
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>6. PAGAMENTOS E OBRIGAÇÕES FINANCEIRAS</h3>
+            <p className="text-sm">Ao contratar qualquer serviço pago, o usuário:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Reconhece a obrigação de pagamento integral;</li>
+              <li>Concorda com as condições informadas no momento da contratação;</li>
+              <li>Autoriza a cobrança por intermediadores financeiros.</li>
+            </ul>
+            <p className="text-sm">A inadimplência poderá resultar em: suspensão automática; cancelamento da conta; inclusão em medidas de cobrança legais.</p>
             
-            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>10. FORO</h3>
-            <p className="text-sm">Fica eleito o foro da Comarca de Triunfo/RS para dirimir quaisquer controvérsias decorrentes destes Termos.</p>
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>7. USUÁRIOS MENORES DE IDADE</h3>
+            <p className="text-sm">Caso o usuário seja menor de 18 anos, o cadastro deverá ser realizado por seu responsável legal.</p>
+            <p className="text-sm">O responsável assume responsabilidade integral por: informações fornecidas; conduta do menor; obrigações financeiras.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>8. PROPRIEDADE INTELECTUAL</h3>
+            <p className="text-sm">Todo o sistema, incluindo: marca Leo Campos FTV; logotipo; código-fonte; layout; estrutura; banco de dados; é protegido por legislação nacional e internacional de propriedade intelectual.</p>
+            <p className="text-sm"><strong>É vedada qualquer reprodução sem autorização formal e expressa.</strong></p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>9. FORÇA MAIOR</h3>
+            <p className="text-sm">A Leo Campos FTV não será responsabilizada por falhas decorrentes de: caso fortuito; força maior; falhas de energia; instabilidades de rede; ataques externos; atos governamentais.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>10. CANCELAMENTO</h3>
+            <p className="text-sm">A Leo Campos FTV poderá suspender ou cancelar contas a qualquer momento em caso de: violação destes Termos; suspeita de fraude; risco à segurança da plataforma; inadimplência.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>11. PRIVACIDADE E DADOS</h3>
+            <p className="text-sm">O tratamento de dados pessoais seguirá a Política de Privacidade da Leo Campos FTV, em conformidade com a LGPD.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>12. ALTERAÇÕES</h3>
+            <p className="text-sm">A Leo Campos FTV poderá alterar estes Termos a qualquer momento, sendo responsabilidade do usuário revisá-los periodicamente.</p>
+            <p className="text-sm">O uso contínuo da plataforma após atualização implica concordância automática com a nova versão.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>13. FORO</h3>
+            <p className="text-sm"><strong>Fica eleito o foro da Comarca de Triunfo/RS, com renúncia expressa a qualquer outro, por mais privilegiado que seja.</strong></p>
           </div>
           <Button onClick={() => setMostrarTermos(false)} className="w-full" style={{ backgroundColor: '#0D5A6E' }}>
             Fechar
