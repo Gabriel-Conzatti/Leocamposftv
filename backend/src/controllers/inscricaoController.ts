@@ -304,19 +304,32 @@ export const atualizarPresenca = asyncHandler(
 
 export const obterTodasInscricoes = asyncHandler(
   async (req: Request, res: Response) => {
-    // SEGURAN\u00c7A: Apenas admin pode ver todas as inscri\u00e7\u00f5es
-    if (!req.usuario?.isAdmin) {
-      throw new AppError(403, 'Apenas administradores podem ver todas as inscri\u00e7\u00f5es');
-    }
-
+    const isAdmin = req.usuario?.isAdmin;
+    const userId = req.usuario?.id;
+    
+    // Admin vê todas as inscrições com dados completos
+    // Alunos veem:
+    //   - Todas inscrições CONFIRMADAS (para ver participantes)
+    //   - Suas próprias inscrições (qualquer status, para saber se precisa pagar)
     const inscricoes = await prisma.inscricao.findMany({
+      where: isAdmin 
+        ? {} 
+        : { 
+            OR: [
+              { status: 'confirmada' }, // Participantes confirmados
+              { aluno_id: userId }      // Minhas inscrições (inclui pendentes)
+            ]
+          },
       include: {
         aluno: {
-          select: { id: true, nome: true, email: true, telefone: true },
+          select: isAdmin 
+            ? { id: true, nome: true, email: true, telefone: true }
+            : { id: true, nome: true }, // Dados limitados para alunos
         },
         aula: {
           select: { id: true, titulo: true },
         },
+        pagamento: isAdmin ? { select: { status: true } } : false,
       },
     });
 
