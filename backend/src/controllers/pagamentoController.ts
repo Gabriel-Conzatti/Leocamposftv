@@ -450,7 +450,7 @@ export const verificarStatusMercadoPago = asyncHandler(
           },
         });
 
-        console.log('🎉 Inscrição confirmada para:', inscricao.aluno.nome);
+        console.log('🎉 Inscrição confirmada para:', inscricao.aluno?.nome || 'Inscrito manual');
 
         return res.json({
           sucesso: true,

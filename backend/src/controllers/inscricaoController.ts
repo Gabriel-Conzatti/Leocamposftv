@@ -72,7 +72,7 @@ export const inscreverAula = asyncHandler(
     });
 
     // Enviar email de aviso de agendamento
-    if (novaInscricao.aluno.email && aulaCompleta) {
+    if (novaInscricao.aluno?.email && aulaCompleta) {
       const dataFormatada = new Date(aulaCompleta.data).toLocaleDateString('pt-BR', {
         weekday: 'long',
         year: 'numeric',

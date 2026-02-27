@@ -440,7 +440,7 @@ export const cancelarAulaComNotificacao = asyncHandler(
     // Notificar todos os alunos inscritos
     let emailsEnviados = 0;
     for (const inscricao of aula.inscricoes) {
-      if (!inscricao.aluno.email) continue;
+      if (!inscricao.aluno?.email) continue;
 
       const dataFormatada = new Date(aula.data).toLocaleDateString('pt-BR', {
         weekday: 'long',
