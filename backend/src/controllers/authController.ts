@@ -86,12 +86,18 @@ export const loginController = asyncHandler(
     });
 
     if (!valido) {
-      throw new AppError(400, mensagens || 'Email ou senha inválidos');
+      throw new AppError(400, mensagens || 'Email/telefone ou senha inválidos');
     }
 
-    // Buscar usuário no banco
-    const usuario = await prisma.usuario.findUnique({
-      where: { email: value.email },
+    // Verificar se é email ou telefone
+    const isEmail = value.email.includes('@');
+    const telefoneFormatado = value.email.replace(/\D/g, ''); // Remove caracteres não numéricos
+
+    // Buscar usuário no banco por email ou telefone
+    const usuario = await prisma.usuario.findFirst({
+      where: isEmail 
+        ? { email: value.email }
+        : { telefone: telefoneFormatado },
     });
 
     if (!usuario) {
