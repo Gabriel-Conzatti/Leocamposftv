@@ -525,6 +525,8 @@ export const listarInscritosAula = asyncHandler(async (req: Request, res: Respon
     id: inscricao.id,
     status: inscricao.status,
     aluno: inscricao.aluno,
+    nomeManual: inscricao.nomeManual,
+    observacao: inscricao.observacao,
     pagamento: inscricao.pagamento,
     createdAt: inscricao.createdAt,
   }));

@@ -172,7 +172,7 @@ export function ProfessorDashboard({
     setNovoInscrito({ nome: '', observacao: '' });
     try {
       const response = await api.listarInscritosAula(aulaId);
-      setInscritosAula((response as any).inscricoes || []);
+      setInscritosAula((response as any).dados?.inscritos || []);
     } catch (error) {
       console.error('Erro ao carregar inscritos:', error);
       toast.error('Erro ao carregar lista de inscritos');
@@ -196,7 +196,7 @@ export function ProfessorDashboard({
       setNovoInscrito({ nome: '', observacao: '' });
       // Recarregar lista de inscritos
       const response = await api.listarInscritosAula(selectedAulaId);
-      setInscritosAula((response as any).inscricoes || []);
+      setInscritosAula((response as any).dados?.inscritos || []);
       // Atualizar dados gerais
       if (onRefresh) await onRefresh();
     } catch (error: any) {
@@ -219,7 +219,7 @@ export function ProfessorDashboard({
       setInscricaoParaRemover(null);
       // Recarregar lista de inscritos
       const response = await api.listarInscritosAula(selectedAulaId);
-      setInscritosAula((response as any).inscricoes || []);
+      setInscritosAula((response as any).dados?.inscritos || []);
       // Atualizar dados gerais
       if (onRefresh) await onRefresh();
     } catch (error: any) {
