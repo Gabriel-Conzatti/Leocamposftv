@@ -12,16 +12,21 @@ import {
 import {
   autenticacao,
 } from '../middlewares/autenticacao.js';
+import {
+  verificarAdmin,
+} from '../middlewares/verificarAdmin.js';
 
 const router = Router();
 
-// Rotas para todos os usuários
-// Rotas com paths mais específicos PRIMEIRO
+// Rotas para todos os usuários autenticados
 router.get('/usuario/minhas-inscricoes', autenticacao, obterInscricoesUsuario);
 router.get('/aula/:aulaId', autenticacao, obterInscricoesAula);
-router.post('/admin/adicionar', autenticacao, adicionarInscritoManual);
-router.delete('/admin/:inscricaoId', autenticacao, removerInscritoAdmin);
-// Rotas genéricas por último
+
+// Rotas admin (requerem autenticação + admin)
+router.post('/admin/adicionar', autenticacao, verificarAdmin, adicionarInscritoManual);
+router.delete('/admin/:inscricaoId', autenticacao, verificarAdmin, removerInscritoAdmin);
+
+// Rotas genéricas
 router.get('/', autenticacao, obterTodasInscricoes);
 router.post('/', autenticacao, inscreverAula);
 router.delete('/:inscricaoId', autenticacao, cancelarInscricao);

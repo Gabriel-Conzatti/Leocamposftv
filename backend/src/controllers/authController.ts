@@ -295,3 +295,127 @@ export const resetarSenha = asyncHandler(
     });
   }
 );
+
+/**
+ * Atualizar Perfil do Usuário
+ * PUT /api/auth/perfil
+ */
+export const atualizarPerfil = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { nome, telefone, senhaAtual, novaSenha } = req.body;
+    const usuarioId = req.usuario!.id;
+
+    // Buscar usuário atual
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: usuarioId },
+    });
+
+    if (!usuario) {
+      throw new AppError(404, 'Usuário não encontrado');
+    }
+
+    const dadosAtualizacao: any = {};
+
+    // Atualizar nome se fornecido
+    if (nome && nome.trim() !== '') {
+      if (nome.length < 3) {
+        throw new AppError(400, 'Nome deve ter no mínimo 3 caracteres');
+      }
+      dadosAtualizacao.nome = nome.trim();
+    }
+
+    // Atualizar telefone se fornecido
+    if (telefone && telefone.trim() !== '') {
+      // Validar formato do telefone
+      const telefoneLimpo = telefone.replace(/\D/g, '');
+      if (telefoneLimpo.length < 10 || telefoneLimpo.length > 11) {
+        throw new AppError(400, 'Telefone inválido');
+      }
+
+      // Verificar se telefone já está em uso por outro usuário
+      const telefoneEmUso = await prisma.usuario.findFirst({
+        where: {
+          telefone: telefone,
+          id: { not: usuarioId },
+        },
+      });
+
+      if (telefoneEmUso) {
+        throw new AppError(400, 'Telefone já está em uso por outro usuário');
+      }
+
+      dadosAtualizacao.telefone = telefone;
+    }
+
+    // Atualizar senha se fornecida
+    if (novaSenha) {
+      if (!senhaAtual) {
+        throw new AppError(400, 'Senha atual é obrigatória para alterar a senha');
+      }
+
+      // Verificar senha atual
+      const senhaValida = await compararSenha(senhaAtual, usuario.senha);
+      if (!senhaValida) {
+        throw new AppError(400, 'Senha atual incorreta');
+      }
+
+      // Validar nova senha
+      if (novaSenha.length < 6) {
+        throw new AppError(400, 'Nova senha deve ter no mínimo 6 caracteres');
+      }
+
+      dadosAtualizacao.senha = await hashSenha(novaSenha);
+    }
+
+    // Se não há nada para atualizar
+    if (Object.keys(dadosAtualizacao).length === 0) {
+      throw new AppError(400, 'Nenhum dado para atualizar');
+    }
+
+    // Atualizar usuário
+    const usuarioAtualizado = await prisma.usuario.update({
+      where: { id: usuarioId },
+      data: dadosAtualizacao,
+    });
+
+    const { senha: _, ...usuarioSemSenha } = usuarioAtualizado;
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Perfil atualizado com sucesso',
+      dados: { usuario: usuarioSemSenha },
+    });
+  }
+);
+
+/**
+ * Obter Perfil do Usuário Logado
+ * GET /api/auth/perfil
+ */
+export const obterPerfil = asyncHandler(
+  async (req: Request, res: Response) => {
+    const usuarioId = req.usuario!.id;
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        telefone: true,
+        isAdmin: true,
+        createdAt: true,
+      },
+    });
+
+    if (!usuario) {
+      throw new AppError(404, 'Usuário não encontrado');
+    }
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Perfil obtido com sucesso',
+      dados: { usuario },
+    });
+  }
+);

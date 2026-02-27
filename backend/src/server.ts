@@ -17,16 +17,32 @@ app.use(express.urlencoded({ extended: true }));
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Aceitar requisições localhost em qualquer porta
+    // Lista de origens permitidas
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
+
+    // Aceitar requisições sem origin (ex: Postman, mobile apps)
     if (!origin) {
-      callback(null, true);
-    } else if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      callback(null, true);
-    } else if (origin === process.env.FRONTEND_URL) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
+
+    // Aceitar origens permitidas ou locais
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.includes('.onrender.com') ||
+      origin.includes('.vercel.app')
+    ) {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   optionsSuccessStatus: 200,

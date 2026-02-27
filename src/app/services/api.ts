@@ -129,6 +129,24 @@ class APIService {
     }
   }
 
+  async obterPerfil() {
+    try {
+      const response = await this.api.get<APIResponse>('/auth/perfil');
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async atualizarPerfil(dados: { nome?: string; telefone?: string; senhaAtual?: string; novaSenha?: string }) {
+    try {
+      const response = await this.api.put<APIResponse>('/auth/perfil', dados);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // ===== AULAS =====
   async listarAulas() {
     try {
@@ -277,15 +295,6 @@ class APIService {
   async obterStatusPagamento(pagamentoId: string) {
     try {
       const response = await this.api.get<APIResponse>(`/pagamentos/${pagamentoId}`);
-      return response.data;
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
-
-  async confirmarPagamento(pagamentoId: string) {
-    try {
-      const response = await this.api.put<APIResponse>(`/pagamentos/${pagamentoId}/confirmar`);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
