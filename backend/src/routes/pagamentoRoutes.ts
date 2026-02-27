@@ -7,6 +7,7 @@ import {
   verificarStatusMercadoPago,
 } from '../controllers/pagamentoController.js';
 import { autenticacao } from '../middlewares/autenticacao.js';
+import { verificarAdmin } from '../middlewares/verificarAdmin.js';
 import { validarWebhookToken } from '../middlewares/webhookValidacao.js';
 
 const router = Router();
@@ -22,7 +23,7 @@ router.get('/verificar/:inscricaoId', autenticacao, verificarStatusMercadoPago);
 // Em produção, use validarWebhookMercadoPago para HMAC SHA256
 router.post('/webhook/mercado-pago', validarWebhookToken, webhookMercadoPago);
 
-// SIMULADOR DE PAGAMENTO (apenas para desenvolvimento - remover em produção)
-router.post('/simular', autenticacao, simularPagamento);
+// SIMULADOR DE PAGAMENTO (apenas admin - para testes)
+router.post('/simular', autenticacao, verificarAdmin, simularPagamento);
 
 export default router;

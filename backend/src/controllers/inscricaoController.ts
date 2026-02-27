@@ -255,12 +255,17 @@ export const atualizarPresenca = asyncHandler(
     const { inscricaoId } = req.params;
     const { presente } = req.body;
 
+    // SEGURAN\u00c7A: Apenas admin pode atualizar presen\u00e7a
+    if (!req.usuario?.isAdmin) {
+      throw new AppError(403, 'Apenas administradores podem atualizar presen\u00e7a');
+    }
+
     const inscricao = await prisma.inscricao.findUnique({
       where: { id: inscricaoId },
     });
 
     if (!inscricao) {
-      throw new AppError(404, 'Inscrição não encontrada');
+      throw new AppError(404, 'Inscri\u00e7\u00e3o n\u00e3o encontrada');
     }
 
     // Atualizar ou criar presença
@@ -292,6 +297,11 @@ export const atualizarPresenca = asyncHandler(
 
 export const obterTodasInscricoes = asyncHandler(
   async (req: Request, res: Response) => {
+    // SEGURAN\u00c7A: Apenas admin pode ver todas as inscri\u00e7\u00f5es
+    if (!req.usuario?.isAdmin) {
+      throw new AppError(403, 'Apenas administradores podem ver todas as inscri\u00e7\u00f5es');
+    }
+
     const inscricoes = await prisma.inscricao.findMany({
       include: {
         aluno: {

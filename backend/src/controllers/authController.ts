@@ -176,7 +176,11 @@ export const solicitarRecuperacaoSenha = asyncHandler(
     }
 
     // Gerar token JWT temporário (expira em 1 hora)
-    const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_super_segura_aqui';
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      console.error('\u274c JWT_SECRET n\u00e3o configurado!');
+      throw new AppError(500, 'Erro interno do servidor');
+    }
     const tokenRecuperacao = jwt.sign(
       {
         id: usuario.id,
@@ -245,7 +249,10 @@ export const resetarSenha = asyncHandler(
     // Verificar e decodificar token
     let payload: any;
     try {
-      const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_super_segura_aqui';
+      const JWT_SECRET = process.env.JWT_SECRET;
+      if (!JWT_SECRET) {
+        throw new AppError(500, 'Erro interno do servidor');
+      }
       payload = jwt.verify(token, JWT_SECRET) as any;
     } catch (error: any) {
       if (error.name === 'TokenExpiredError') {
