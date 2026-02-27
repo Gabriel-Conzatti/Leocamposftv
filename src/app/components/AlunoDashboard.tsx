@@ -316,7 +316,8 @@ export function AlunoDashboard({
                             <div className="space-y-3">
                               <div className="flex items-start justify-between">
                                 <div>
-                                  <h3 className="font-semibold text-lg">{formatDate(aula.data)}</h3>
+                                  <h3 className="font-semibold text-lg">{aula.titulo}</h3>
+                                  <p className="text-sm text-gray-500">{formatDate(aula.data)}</p>
                                   <div className="flex items-center gap-2 mt-1">
                                     <Clock className="w-4 h-4 text-gray-500" />
                                     <span className="text-sm text-gray-600">{aula.horario}</span>
@@ -386,7 +387,7 @@ export function AlunoDashboard({
                                     </DialogTrigger>
                                     <DialogContent>
                                       <DialogHeader>
-                                        <DialogTitle>Participantes</DialogTitle>
+                                        <DialogTitle>Participantes - {aula.titulo}</DialogTitle>
                                         <DialogDescription>
                                           {formatDate(aula.data)} às {aula.horario}
                                         </DialogDescription>
@@ -448,9 +449,10 @@ export function AlunoDashboard({
                           <CardContent className="p-6">
                             <div className="flex items-start justify-between mb-4">
                               <div className="flex-1">
-                                <h3 className="text-lg font-semibold mb-2">
+                                <h3 className="text-lg font-semibold">{aula.titulo}</h3>
+                                <p className="text-sm text-gray-500 mb-2">
                                   {formatDate(aula.data)} às {aula.horario}
-                                </h3>
+                                </p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                                   <div className="flex items-center gap-2">
                                     <MapPin className="w-4 h-4" />
