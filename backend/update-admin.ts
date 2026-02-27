@@ -7,7 +7,7 @@ async function main() {
     console.log("👤 Atualizando usuário para admin...");
 
     const adminUser = await prisma.usuario.update({
-      where: { email: "gabrielkreverconzatti@gmail.com" },
+      where: { email: "leo1907campos@hotmail.com" },
       data: { isAdmin: true }
     });
 

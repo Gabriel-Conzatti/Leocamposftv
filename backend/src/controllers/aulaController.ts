@@ -219,7 +219,8 @@ export const atualizarAula = asyncHandler(
       throw new AppError(404, 'Aula não encontrada');
     }
 
-    if (aula.professor_id !== req.usuario!.id) {
+    // Admins podem atualizar qualquer aula; professores apenas suas próprias
+    if (!req.usuario!.isAdmin && aula.professor_id !== req.usuario!.id) {
       throw new AppError(403, 'Você não tem permissão para atualizar esta aula');
     }
 
@@ -271,7 +272,8 @@ export const deletarAula = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError(404, 'Aula não encontrada');
   }
 
-  if (aula.professor_id !== req.usuario!.id) {
+  // Admins podem deletar qualquer aula; professores apenas suas próprias
+  if (!req.usuario!.isAdmin && aula.professor_id !== req.usuario!.id) {
     throw new AppError(403, 'Você não tem permissão para deletar esta aula');
   }
 
@@ -287,15 +289,17 @@ export const deletarAula = asyncHandler(async (req: Request, res: Response) => {
 
 export const obterAulasProfessor = asyncHandler(
   async (req: Request, res: Response) => {
+    // Se for admin, retorna todas as aulas; caso contrário, apenas as do professor
+    const whereClause = req.usuario!.isAdmin ? {} : { professor_id: req.usuario!.id };
+    
     const aulas = await prisma.aula.findMany({
-      where: {
-        professor_id: req.usuario!.id,
-      },
+      where: whereClause,
       include: {
         professor: {
           select: { id: true, nome: true, email: true },
         },
       },
+      orderBy: { data: 'asc' },
     });
 
     // Transformar os dados para o formato esperado pelo frontend
