@@ -3,6 +3,7 @@ import { Eye, EyeOff, Mail, User, Phone, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 
@@ -27,6 +28,8 @@ export function RegisterPage({ onRegister, onBackToLogin }: RegisterPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mostrarTermos, setMostrarTermos] = useState(false);
+  const [mostrarPrivacidade, setMostrarPrivacidade] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,16 +267,192 @@ export function RegisterPage({ onRegister, onBackToLogin }: RegisterPageProps) {
           {/* Termos */}
           <p className="text-white/60 text-xs text-center mt-4 sm:mt-6 leading-relaxed px-2">
             Ao criar uma conta, você concorda com nossos{' '}
-            <button className="text-[#FFD966] hover:underline font-medium">
+            <button 
+              type="button"
+              onClick={() => setMostrarTermos(true)}
+              className="text-[#FFD966] hover:underline font-medium"
+            >
               Termos de Uso
             </button>
             {' '}e{' '}
-            <button className="text-[#FFD966] hover:underline font-medium">
+            <button 
+              type="button"
+              onClick={() => setMostrarPrivacidade(true)}
+              className="text-[#FFD966] hover:underline font-medium"
+            >
               Política de Privacidade
             </button>
           </p>
         </div>
       </div>
+
+      {/* Dialog de Termos de Uso */}
+      <Dialog open={mostrarTermos} onOpenChange={setMostrarTermos}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold" style={{ color: '#0D5A6E' }}>
+              Termos de Uso
+            </DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-sm max-w-none text-gray-700 space-y-4 py-4">
+            <p className="text-xs text-gray-500">Última atualização: 27 de fevereiro de 2026</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>1. ACEITAÇÃO</h3>
+            <p className="text-sm">Ao acessar ou utilizar a plataforma Leo Campos FTV, o usuário declara que leu, compreendeu e aceita integralmente estes Termos de Uso.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>2. OBJETO</h3>
+            <p className="text-sm">A plataforma destina-se à gestão de:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Cadastro de usuários</li>
+              <li>Organização de aulas e atividades esportivas</li>
+              <li>Comunicação administrativa</li>
+              <li>Gestão de pagamentos</li>
+            </ul>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>3. CADASTRO</h3>
+            <p className="text-sm">O usuário compromete-se a:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Fornecer dados verdadeiros</li>
+              <li>Manter sigilo de login e senha</li>
+              <li>Atualizar informações sempre que necessário</li>
+            </ul>
+            <p className="text-sm">A conta é pessoal e intransferível.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>4. RESPONSABILIDADES</h3>
+            <p className="text-sm">É proibido:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Inserir dados falsos</li>
+              <li>Utilizar a plataforma para fins ilícitos</li>
+              <li>Tentar comprometer a segurança do sistema</li>
+              <li>Compartilhar credenciais</li>
+            </ul>
+            <p className="text-sm">O descumprimento poderá resultar em suspensão ou exclusão da conta.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>5. PAGAMENTOS</h3>
+            <p className="text-sm">Os pagamentos realizados por meio da plataforma poderão ser processados por intermediadores financeiros, estando sujeitos às condições informadas no momento da contratação.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>6. PROPRIEDADE INTELECTUAL</h3>
+            <p className="text-sm">Todos os direitos relacionados à marca, logotipo, layout, sistema e conteúdos da Leo Campos FTV são reservados.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>7. LIMITAÇÃO DE RESPONSABILIDADE</h3>
+            <p className="text-sm">A Leo Campos FTV não se responsabiliza por:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Falhas externas de conexão</li>
+              <li>Uso indevido da conta pelo usuário</li>
+              <li>Informações incorretas fornecidas pelo usuário</li>
+            </ul>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>8. SUSPENSÃO OU CANCELAMENTO</h3>
+            <p className="text-sm">A conta poderá ser suspensa ou cancelada em caso de violação destes Termos.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>9. ALTERAÇÕES</h3>
+            <p className="text-sm">Estes Termos poderão ser atualizados a qualquer momento, sendo válidos a partir de sua publicação.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>10. FORO</h3>
+            <p className="text-sm">Fica eleito o foro da Comarca de Triunfo/RS para dirimir quaisquer controvérsias decorrentes destes Termos.</p>
+          </div>
+          <Button onClick={() => setMostrarTermos(false)} className="w-full" style={{ backgroundColor: '#0D5A6E' }}>
+            Fechar
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Política de Privacidade */}
+      <Dialog open={mostrarPrivacidade} onOpenChange={setMostrarPrivacidade}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold" style={{ color: '#0D5A6E' }}>
+              Política de Privacidade
+            </DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-sm max-w-none text-gray-700 space-y-4 py-4">
+            <p className="text-xs text-gray-500">Última atualização: 27 de fevereiro de 2026</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>1. INTRODUÇÃO</h3>
+            <p className="text-sm">A presente Política de Privacidade tem como objetivo demonstrar o compromisso da plataforma Leo Campos FTV com a proteção dos dados pessoais de seus usuários, clientes, parceiros e demais titulares, em conformidade com a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados – LGPD) e demais normas aplicáveis.</p>
+            <p className="text-sm">Ao utilizar a plataforma Leo Campos FTV, o usuário declara que leu, compreendeu e concorda com as disposições desta Política.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>2. IDENTIFICAÇÃO DO CONTROLADOR</h3>
+            <p className="text-sm">O controlador dos dados pessoais tratados no âmbito da plataforma é:</p>
+            <p className="text-sm"><strong>Leo Campos FTV</strong><br/>Sede: Triunfo, Estado do Rio Grande do Sul – Brasil</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>3. DADOS PESSOAIS COLETADOS</h3>
+            <p className="text-sm font-semibold">3.1 Dados fornecidos diretamente pelo usuário:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Nome completo</li>
+              <li>CPF ou documento de identificação</li>
+              <li>E-mail</li>
+              <li>Telefone</li>
+              <li>Endereço completo</li>
+              <li>CEP</li>
+              <li>Informações relacionadas à matrícula, participação em aulas ou eventos</li>
+              <li>Dados de pagamento, quando aplicável</li>
+            </ul>
+            <p className="text-sm font-semibold mt-2">3.2 Dados coletados automaticamente:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Endereço IP</li>
+              <li>Dados de geolocalização aproximada</li>
+              <li>Informações do navegador e dispositivo</li>
+              <li>Cookies e identificadores eletrônicos</li>
+              <li>Histórico de acesso e uso da plataforma</li>
+            </ul>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>4. FINALIDADE DO TRATAMENTO</h3>
+            <p className="text-sm">Os dados pessoais são tratados para:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Realizar cadastro e autenticação</li>
+              <li>Gerenciar aulas, treinos, eventos e atividades</li>
+              <li>Processar pagamentos e cobranças</li>
+              <li>Enviar comunicações administrativas</li>
+              <li>Cumprir obrigações legais e fiscais</li>
+              <li>Prevenir fraudes e garantir segurança da informação</li>
+              <li>Melhorar a experiência do usuário</li>
+            </ul>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>5. BASE LEGAL (LGPD)</h3>
+            <p className="text-sm">O tratamento ocorre com fundamento em:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Execução de contrato</li>
+              <li>Cumprimento de obrigação legal</li>
+              <li>Legítimo interesse</li>
+              <li>Exercício regular de direitos</li>
+              <li>Consentimento do titular, quando necessário</li>
+            </ul>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>6. COMPARTILHAMENTO DE DADOS</h3>
+            <p className="text-sm">Os dados poderão ser compartilhados com:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Instituições financeiras e intermediadores de pagamento</li>
+              <li>Prestadores de serviço de tecnologia</li>
+              <li>Contabilidade e assessoria jurídica</li>
+              <li>Autoridades públicas, quando exigido por lei</li>
+            </ul>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>7. SEGURANÇA E ARMAZENAMENTO</h3>
+            <p className="text-sm">A Leo Campos FTV adota medidas técnicas e administrativas adequadas para proteger os dados pessoais contra acessos não autorizados, vazamentos, perda ou destruição.</p>
+            <p className="text-sm">Os dados serão mantidos pelo período necessário ao cumprimento das finalidades previstas ou conforme exigido por lei.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>8. DIREITOS DO TITULAR</h3>
+            <p className="text-sm">Nos termos do artigo 18 da LGPD, o titular poderá:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              <li>Confirmar a existência de tratamento</li>
+              <li>Acessar seus dados</li>
+              <li>Corrigir informações</li>
+              <li>Solicitar exclusão ou anonimização</li>
+              <li>Revogar consentimento</li>
+            </ul>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>9. ALTERAÇÕES</h3>
+            <p className="text-sm">Esta Política poderá ser atualizada a qualquer momento, sendo publicada a versão vigente na plataforma.</p>
+            
+            <h3 className="font-bold text-base" style={{ color: '#0D5A6E' }}>10. FORO</h3>
+            <p className="text-sm">Fica eleito o foro da Comarca de Triunfo/RS, com renúncia a qualquer outro, por mais privilegiado que seja.</p>
+          </div>
+          <Button onClick={() => setMostrarPrivacidade(false)} className="w-full" style={{ backgroundColor: '#0D5A6E' }}>
+            Fechar
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
