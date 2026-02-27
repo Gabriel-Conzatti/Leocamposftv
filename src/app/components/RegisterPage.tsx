@@ -105,9 +105,9 @@ export function RegisterPage({ onRegister, onBackToLogin }: RegisterPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 bg-gradient-to-b" style={{ backgroundColor: '#0D5A6E' }}>
-      <div className="w-full max-w-md">
-        <div className="bg-[#124C5E] rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="min-h-screen py-6 sm:py-8 px-3 sm:px-4" style={{ backgroundColor: '#0D5A6E' }}>
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-[#124C5E] rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl">
           {/* Back Button */}
           <button
             onClick={onBackToLogin}
