@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, DollarSign, LogOut, ExternalLink, Check, User, Edit2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, DollarSign, LogOut, ExternalLink, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,6 @@ import QRCode from 'qrcode';
 import { api } from '@/services/api';
 import { useAulas, useInscricoes } from '@/hooks/useAPI';
 import type { Aula, Inscricao } from '@/types';
-import { EditProfileDialog } from './EditProfileDialog';
 import { formatDate, formatCurrency, getStatusLabel } from '@/utils/helpers';
 
 interface AlunoDashboardProps {
@@ -35,8 +34,6 @@ export function AlunoDashboard({
   const [qrCodeImage, setQrCodeImage] = useState<string>('');
   const [loadingPagamento, setLoadingPagamento] = useState(false);
   const [inscrevendoAulaId, setInscrevendoAulaId] = useState<string | null>(null);
-  const [mostrarModalPerfil, setMostrarModalPerfil] = useState(false);
-  const [mostrarEditarPerfil, setMostrarEditarPerfil] = useState(false);
 
   const minhasInscricoes = inscricoes.filter(i => i.aluno_id === alunoId);
 
@@ -261,11 +258,6 @@ export function AlunoDashboard({
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
-              <Button variant="outline" size="sm" onClick={() => setMostrarModalPerfil(true)} className="h-10 px-3 text-xs sm:text-sm">
-                <User className="w-4 h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                <span className="hidden sm:inline">Perfil</span>
-                <span className="sm:hidden">Perfil</span>
-              </Button>
               <Button variant="ghost" onClick={onLogout} className="h-10 px-3 text-xs sm:text-sm">
                 <LogOut className="w-4 h-4 mr-1 sm:mr-2 flex-shrink-0" />
                 <span className="hidden sm:inline">Sair</span>
@@ -509,53 +501,6 @@ export function AlunoDashboard({
         </Tabs>
       </div>
 
-      {/* Modal de Perfil */}
-      <Dialog open={mostrarModalPerfil} onOpenChange={setMostrarModalPerfil}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Meu Perfil</DialogTitle>
-            <DialogDescription>Gerencie seus dados pessoais</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="flex items-center gap-4 pb-6 border-b">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white" style={{ backgroundColor: '#0D5A6E' }}>
-                {alunoNome.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">{alunoNome}</h3>
-                <p className="text-sm text-gray-500">Aluno</p>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm text-gray-600">Nome</Label>
-                <p className="font-medium">{alunoNome}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">ID</Label>
-                <p className="font-medium text-xs text-gray-500">{alunoId}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setMostrarModalPerfil(false)}
-              >
-                Fechar
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => setMostrarEditarPerfil(true)}
-              >
-                <Edit2 className="w-4 h-4 mr-2" />
-                Editar Perfil
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Dialog de Pagamento via Mercado Pago */}
       {inscricaoParaPagar && (
         <Dialog open={!!inscricaoParaPagar} onOpenChange={() => {
@@ -686,13 +631,6 @@ export function AlunoDashboard({
           </DialogContent>
         </Dialog>
       )}
-
-      {/* Modal de Edição de Perfil */}
-      <EditProfileDialog 
-        isOpen={mostrarEditarPerfil}
-        onOpenChange={setMostrarEditarPerfil}
-        userName={alunoNome}
-      />
     </div>
   );
 }

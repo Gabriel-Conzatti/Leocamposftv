@@ -7,6 +7,7 @@ import {
   resetarSenha,
   atualizarPerfil,
   obterPerfil,
+  obterContatoAdmin,
 } from '../controllers/authController.js';
 import { autenticacao } from '../middlewares/autenticacao.js';
 
@@ -20,6 +21,7 @@ router.post('/logout', logoutController);
 // Rotas de recuperação de senha (públicas)
 router.post('/solicitar-recuperacao', solicitarRecuperacaoSenha);
 router.post('/resetar-senha', resetarSenha);
+router.get('/contato-admin', obterContatoAdmin);
 
 // Rotas de perfil (autenticadas)
 router.get('/perfil', autenticacao, obterPerfil);

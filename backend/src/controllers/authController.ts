@@ -419,3 +419,30 @@ export const obterPerfil = asyncHandler(
     });
   }
 );
+
+// Obter contato do admin (Leo Campos) para recuperação de senha
+export const obterContatoAdmin = asyncHandler(
+  async (req: Request, res: Response) => {
+    // Buscar o admin principal (Leo Campos)
+    const admin = await prisma.usuario.findFirst({
+      where: { isAdmin: true },
+      select: {
+        nome: true,
+        telefone: true,
+      },
+      orderBy: { createdAt: 'asc' }, // Pegar o admin mais antigo (principal)
+    });
+
+    if (!admin || !admin.telefone) {
+      throw new AppError(404, 'Contato do admin não encontrado');
+    }
+
+    res.json({
+      sucesso: true,
+      dados: {
+        nome: admin.nome,
+        telefone: admin.telefone,
+      },
+    });
+  }
+);

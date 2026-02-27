@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Mail } from 'lucide-react';
+import { Eye, EyeOff, Mail, Phone, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 
@@ -16,6 +17,27 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mostrarContatoDialog, setMostrarContatoDialog] = useState(false);
+  const [contatoAdmin, setContatoAdmin] = useState<{ nome: string; telefone: string } | null>(null);
+  const [carregandoContato, setCarregandoContato] = useState(false);
+
+  const handleEsqueciSenha = async () => {
+    setCarregandoContato(true);
+    try {
+      const response = await api.obterContatoAdmin();
+      if (response.sucesso && response.dados) {
+        setContatoAdmin(response.dados as { nome: string; telefone: string });
+        setMostrarContatoDialog(true);
+      } else {
+        toast.error('Erro ao carregar contato');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar contato:', error);
+      toast.error('Erro ao carregar contato');
+    } finally {
+      setCarregandoContato(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,10 +157,11 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
               <div className="text-right mt-2">
                 <button
                   type="button"
-                  className="text-[#FFD966] text-xs sm:text-sm hover:underline"
-                  onClick={() => window.location.href = '?page=esqueci-senha'}
+                  className="text-[#FFD966] text-xs sm:text-sm hover:underline disabled:opacity-50"
+                  onClick={handleEsqueciSenha}
+                  disabled={carregandoContato}
                 >
-                  Esqueci minha senha
+                  {carregandoContato ? 'Carregando...' : 'Esqueci minha senha'}
                 </button>
               </div>
             </div>
@@ -169,6 +192,50 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Dialog de Contato para Recuperação de Senha */}
+      <Dialog open={mostrarContatoDialog} onOpenChange={setMostrarContatoDialog}>
+        <DialogContent className="max-w-sm bg-[#124C5E] border-none rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl text-center">Recuperar Senha</DialogTitle>
+            <DialogDescription className="text-white/80 text-center">
+              Entre em contato para redefinir sua senha
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-[#0D5A6E] flex items-center justify-center mx-auto">
+              <Phone className="w-8 h-8 text-[#FFD966]" />
+            </div>
+            {contatoAdmin && (
+              <>
+                <p className="text-white font-semibold text-lg">{contatoAdmin.nome}</p>
+                <a 
+                  href={`tel:${contatoAdmin.telefone}`}
+                  className="flex items-center justify-center gap-2 text-[#FFD966] text-xl font-bold hover:underline"
+                >
+                  <Phone className="w-5 h-5" />
+                  {contatoAdmin.telefone}
+                </a>
+                <a 
+                  href={`https://wa.me/55${contatoAdmin.telefone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#20bd5a] transition-colors"
+                >
+                  Chamar no WhatsApp
+                </a>
+              </>
+            )}
+            <Button 
+              variant="ghost" 
+              onClick={() => setMostrarContatoDialog(false)}
+              className="text-white/70 hover:text-white mt-4"
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

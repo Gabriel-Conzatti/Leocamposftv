@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { MapPin, Users, DollarSign, Plus, LogOut, Trash2, Filter, RefreshCw, Pencil, User, Edit2, Calendar, Clock, Eye, Mail, Phone } from 'lucide-react';
+import { MapPin, Users, DollarSign, Plus, LogOut, Trash2, Filter, RefreshCw, Pencil, Calendar, Clock, Eye, Mail, Phone } from 'lucide-react';
 import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import type { Aula, Inscricao } from '@/types';
-import { EditProfileDialog } from './EditProfileDialog';
 import { formatDate, formatCurrency, getStatusLabel } from '@/utils/helpers';
 
 interface ProfessorDashboardProps {
@@ -41,7 +40,6 @@ export function ProfessorDashboard({
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mostrarModalPerfil, setMostrarModalPerfil] = useState(false);
   const [isInscritosDialogOpen, setIsInscritosDialogOpen] = useState(false);
   const [inscritosAula, setInscritosAula] = useState<any[]>([]);
   const [loadingInscritos, setLoadingInscritos] = useState(false);
@@ -441,14 +439,6 @@ export function ProfessorDashboard({
                 </DialogContent>
               </Dialog>
               <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setMostrarModalPerfil(true)}
-              >
-                <User className="w-4 h-4 mr-2" />
-                Perfil
-              </Button>
-              <Button 
                 variant="ghost" 
                 onClick={onLogout}
                 className="text-red-500 hover:text-red-700"
@@ -585,7 +575,7 @@ export function ProfessorDashboard({
               </div>
 
               <Tabs defaultValue="proximas" className="space-y-3 sm:space-y-4">
-                <TabsList className="grid w-full grid-cols-3 h-auto p-1">
+                <TabsList className="grid w-full grid-cols-2 h-auto p-1">
                   <TabsTrigger value="proximas" className="text-xs sm:text-sm py-2 px-1 sm:px-4">
                     <span className="hidden sm:inline">Próximas Aulas</span>
                     <span className="sm:hidden">Próximas</span>
@@ -593,10 +583,6 @@ export function ProfessorDashboard({
                   <TabsTrigger value="historico" className="text-xs sm:text-sm py-2 px-1 sm:px-4">
                     <span className="hidden sm:inline">Histórico</span>
                     <span className="sm:hidden">Histórico</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="perfil" className="text-xs sm:text-sm py-2 px-1 sm:px-4">
-                    <span className="hidden sm:inline">Meu Perfil</span>
-                    <span className="sm:hidden">Perfil</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -777,43 +763,6 @@ export function ProfessorDashboard({
                     );
                   })()}
                 </TabsContent>
-
-                {/* Abas de Perfil */}
-                <TabsContent value="perfil" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Meu Perfil</CardTitle>
-                      <CardDescription>
-                        Gerencie seus dados pessoais
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex items-center gap-4 pb-6 border-b">
-                        <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white" style={{ backgroundColor: '#0D5A6E' }}>
-                          {professorNome.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold">{professorNome}</h3>
-                          <p className="text-sm text-gray-500">Professor</p>
-                        </div>
-                        <Button 
-                          className="ml-auto"
-                          onClick={() => setMostrarModalPerfil(true)}
-                        >
-                          <Edit2 className="w-4 h-4 mr-2" />
-                          Editar Perfil
-                        </Button>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <Label className="text-sm text-gray-600">Nome</Label>
-                          <p className="font-medium">{professorNome}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
               </Tabs>
             </div>
           </div>
@@ -921,13 +870,6 @@ export function ProfessorDashboard({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Modal de Edição de Perfil */}
-      <EditProfileDialog 
-        isOpen={mostrarModalPerfil}
-        onOpenChange={setMostrarModalPerfil}
-        userName={professorNome}
-      />
 
       {/* Modal de Inscritos na Aula */}
       <Dialog open={isInscritosDialogOpen} onOpenChange={(open) => {

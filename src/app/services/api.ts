@@ -129,6 +129,15 @@ class APIService {
     }
   }
 
+  async obterContatoAdmin() {
+    try {
+      const response = await this.api.get<APIResponse>('/auth/contato-admin');
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async obterPerfil() {
     try {
       const response = await this.api.get<APIResponse>('/auth/perfil');
