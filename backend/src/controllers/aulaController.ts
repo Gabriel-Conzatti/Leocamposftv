@@ -10,7 +10,14 @@ export const listarAulas = asyncHandler(async (req: Request, res: Response) => {
       professor: {
         select: { id: true, nome: true, email: true },
       },
-      _count: { select: { inscricoes: true } },
+      // SÓ conta inscrições CONFIRMADAS (pagas ou manuais) para vagas
+      _count: { 
+        select: { 
+          inscricoes: { 
+            where: { status: 'confirmada' } 
+          } 
+        } 
+      },
     },
     orderBy: { data: 'asc' },
   });
@@ -244,12 +251,19 @@ export const atualizarAula = asyncHandler(
         professor: {
           select: { id: true, nome: true, email: true },
         },
-        _count: { select: { inscricoes: true } },
+        // SÓ conta inscrições CONFIRMADAS para vagas
+        _count: { 
+          select: { 
+            inscricoes: { 
+              where: { status: 'confirmada' } 
+            } 
+          } 
+        },
       },
     });
 
     // Transformar os dados para o formato esperado pelo frontend
-    // Calcular vagasDisponiveis dinamicamente
+    // Calcular vagasDisponiveis dinamicamente (apenas confirmadas)
     const aulaAtualizadaFormatada = {
       ...aulaAtualizada,
       data: aulaAtualizada.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
@@ -303,13 +317,20 @@ export const obterAulasProfessor = asyncHandler(
         professor: {
           select: { id: true, nome: true, email: true },
         },
-        _count: { select: { inscricoes: true } },
+        // SÓ conta inscrições CONFIRMADAS para vagas
+        _count: { 
+          select: { 
+            inscricoes: { 
+              where: { status: 'confirmada' } 
+            } 
+          } 
+        },
       },
       orderBy: { data: 'asc' },
     });
 
     // Transformar os dados para o formato esperado pelo frontend
-    // Calcular vagasDisponiveis dinamicamente
+    // Calcular vagasDisponiveis dinamicamente (apenas confirmadas)
     const aulasFormatadas = aulas.map(aula => ({
       ...aula,
       data: aula.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD

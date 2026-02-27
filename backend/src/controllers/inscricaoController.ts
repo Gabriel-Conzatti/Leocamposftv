@@ -24,10 +24,17 @@ export const inscreverAula = asyncHandler(
     }
 
     // Verificar se a aula existe e tem vagas
+    // SÓ conta inscrições CONFIRMADAS (pagas ou manuais) para verificar vagas
     const aula = await prisma.aula.findUnique({
       where: { id: aulaId },
       include: {
-        _count: { select: { inscricoes: true } },
+        _count: { 
+          select: { 
+            inscricoes: { 
+              where: { status: 'confirmada' } 
+            } 
+          } 
+        },
       },
     });
 
@@ -35,7 +42,7 @@ export const inscreverAula = asyncHandler(
       throw new AppError(404, 'Aula não encontrada');
     }
 
-    // Calcular vagas disponíveis dinamicamente
+    // Calcular vagas disponíveis (apenas inscrições confirmadas ocupam vaga)
     const vagasDisponiveis = aula.vagas - aula._count.inscricoes;
     if (vagasDisponiveis <= 0) {
       throw new AppError(400, 'Aula sem vagas disponíveis');
@@ -45,7 +52,7 @@ export const inscreverAula = asyncHandler(
       throw new AppError(400, 'Aula foi cancelada');
     }
 
-    // Criar inscrição
+    // Criar inscrição com status PENDENTE (não ocupa vaga até pagar)
     const novaInscricao = await prisma.inscricao.create({
       data: {
         aluno_id: req.usuario!.id,
@@ -347,10 +354,17 @@ export const adicionarInscritoManual = asyncHandler(
     }
 
     // Verificar se a aula existe e tem vagas
+    // SÓ conta inscrições CONFIRMADAS para verificar vagas
     const aula = await prisma.aula.findUnique({
       where: { id: aulaId },
       include: {
-        _count: { select: { inscricoes: true } },
+        _count: { 
+          select: { 
+            inscricoes: { 
+              where: { status: 'confirmada' } 
+            } 
+          } 
+        },
       },
     });
 
@@ -358,13 +372,13 @@ export const adicionarInscritoManual = asyncHandler(
       throw new AppError(404, 'Aula não encontrada');
     }
 
-    // Calcular vagas disponíveis dinamicamente
+    // Calcular vagas disponíveis (apenas confirmadas ocupam vaga)
     const vagasDisponiveis = aula.vagas - aula._count.inscricoes;
     if (vagasDisponiveis <= 0) {
       throw new AppError(400, 'Aula sem vagas disponíveis');
     }
 
-    // Criar inscrição manual (sem vincular a usuário)
+    // Criar inscrição manual já CONFIRMADA (ocupa vaga imediatamente)
     const novaInscricao = await prisma.inscricao.create({
       data: {
         aula_id: aulaId,
