@@ -254,7 +254,7 @@ export function AlunoDashboard({
               />
               <div className="min-w-0">
                 <h1 className="text-base sm:text-xl font-bold truncate" style={{ color: '#0D5A6E' }}>Leo Campos</h1>
-                <p className="text-xs sm:text-sm text-gray-500 truncate">Olá, {alunoNome}!</p>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">{alunoNome}</p>
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
