@@ -10,6 +10,7 @@ export const listarAulas = asyncHandler(async (req: Request, res: Response) => {
       professor: {
         select: { id: true, nome: true, email: true },
       },
+      _count: { select: { inscricoes: true } },
     },
     orderBy: { data: 'asc' },
   });
@@ -17,11 +18,13 @@ export const listarAulas = asyncHandler(async (req: Request, res: Response) => {
   console.log('📋 [API] Aulas encontradas no banco:', aulas.length);
 
   // Transformar os dados para o formato esperado pelo frontend
+  // Calcular vagasDisponiveis dinamicamente
   const aulasFormatadas = aulas.map(aula => ({
     ...aula,
     data: aula.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
     criadaEm: aula.createdAt?.toISOString() || new Date().toISOString(),
     atualizadaEm: aula.updatedAt?.toISOString() || new Date().toISOString(),
+    vagasDisponiveis: aula.vagas - aula._count.inscricoes,
   }));
 
   console.log('📊 [API] Resposta formatada:', JSON.stringify(aulasFormatadas, null, 2));
@@ -236,21 +239,23 @@ export const atualizarAula = asyncHandler(
         preco: preco !== undefined ? preco : aula.preco,
         vagas: vagas || aula.vagas,
         status: status || aula.status,
-        vagasDisponiveis: vagas ? vagas : aula.vagasDisponiveis,
       },
       include: {
         professor: {
           select: { id: true, nome: true, email: true },
         },
+        _count: { select: { inscricoes: true } },
       },
     });
 
     // Transformar os dados para o formato esperado pelo frontend
+    // Calcular vagasDisponiveis dinamicamente
     const aulaAtualizadaFormatada = {
       ...aulaAtualizada,
       data: aulaAtualizada.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
       criadaEm: aulaAtualizada.createdAt?.toISOString() || new Date().toISOString(),
       atualizadaEm: aulaAtualizada.updatedAt?.toISOString() || new Date().toISOString(),
+      vagasDisponiveis: aulaAtualizada.vagas - aulaAtualizada._count.inscricoes,
     };
 
     res.json({
@@ -298,16 +303,19 @@ export const obterAulasProfessor = asyncHandler(
         professor: {
           select: { id: true, nome: true, email: true },
         },
+        _count: { select: { inscricoes: true } },
       },
       orderBy: { data: 'asc' },
     });
 
     // Transformar os dados para o formato esperado pelo frontend
+    // Calcular vagasDisponiveis dinamicamente
     const aulasFormatadas = aulas.map(aula => ({
       ...aula,
       data: aula.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
       criadaEm: aula.createdAt?.toISOString() || new Date().toISOString(),
       atualizadaEm: aula.updatedAt?.toISOString() || new Date().toISOString(),
+      vagasDisponiveis: aula.vagas - aula._count.inscricoes,
     }));
 
     res.json({

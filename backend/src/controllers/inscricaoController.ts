@@ -26,13 +26,18 @@ export const inscreverAula = asyncHandler(
     // Verificar se a aula existe e tem vagas
     const aula = await prisma.aula.findUnique({
       where: { id: aulaId },
+      include: {
+        _count: { select: { inscricoes: true } },
+      },
     });
 
     if (!aula) {
       throw new AppError(404, 'Aula não encontrada');
     }
 
-    if (aula.vagasDisponiveis <= 0) {
+    // Calcular vagas disponíveis dinamicamente
+    const vagasDisponiveis = aula.vagas - aula._count.inscricoes;
+    if (vagasDisponiveis <= 0) {
       throw new AppError(400, 'Aula sem vagas disponíveis');
     }
 
@@ -54,15 +59,6 @@ export const inscreverAula = asyncHandler(
         aula: {
           select: { id: true, titulo: true, preco: true },
         },
-      },
-    });
-
-    // Atualizar vagas disponíveis
-    await prisma.aula.update({
-      where: { id: aulaId },
-      data: {
-        vagasDisponiveis: aula.vagasDisponiveis - 1,
-        status: aula.vagasDisponiveis - 1 === 0 ? 'cheia' : 'aberta',
       },
     });
 
@@ -195,15 +191,6 @@ export const cancelarInscricao = asyncHandler(
       where: { id: inscricaoId },
     });
 
-    // Atualizar vagas da aula
-    await prisma.aula.update({
-      where: { id: inscricao.aula_id },
-      data: {
-        vagasDisponiveis: inscricao.aula.vagasDisponiveis + 1,
-        status: 'aberta',
-      },
-    });
-
     res.json({
       sucesso: true,
       mensagem: 'Inscrição cancelada com sucesso',
@@ -252,15 +239,6 @@ export const removerInscritoAdmin = asyncHandler(
     // Deletar inscrição
     await prisma.inscricao.delete({
       where: { id: inscricaoId },
-    });
-
-    // Atualizar vagas da aula
-    await prisma.aula.update({
-      where: { id: inscricao.aula_id },
-      data: {
-        vagasDisponiveis: inscricao.aula.vagasDisponiveis + 1,
-        status: 'aberta',
-      },
     });
 
     res.json({
@@ -361,13 +339,18 @@ export const adicionarInscritoManual = asyncHandler(
     // Verificar se a aula existe e tem vagas
     const aula = await prisma.aula.findUnique({
       where: { id: aulaId },
+      include: {
+        _count: { select: { inscricoes: true } },
+      },
     });
 
     if (!aula) {
       throw new AppError(404, 'Aula não encontrada');
     }
 
-    if (aula.vagasDisponiveis <= 0) {
+    // Calcular vagas disponíveis dinamicamente
+    const vagasDisponiveis = aula.vagas - aula._count.inscricoes;
+    if (vagasDisponiveis <= 0) {
       throw new AppError(400, 'Aula sem vagas disponíveis');
     }
 
@@ -378,15 +361,6 @@ export const adicionarInscritoManual = asyncHandler(
         nomeManual: nome,
         observacao: observacao || 'Adicionado manualmente pelo admin',
         status: 'confirmada',
-      },
-    });
-
-    // Atualizar vagas disponíveis
-    await prisma.aula.update({
-      where: { id: aulaId },
-      data: {
-        vagasDisponiveis: aula.vagasDisponiveis - 1,
-        status: aula.vagasDisponiveis - 1 === 0 ? 'cheia' : 'aberta',
       },
     });
 
