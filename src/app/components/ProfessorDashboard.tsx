@@ -50,6 +50,8 @@ export function ProfessorDashboard({
   const [mostrarFormNovoInscrito, setMostrarFormNovoInscrito] = useState(false);
   const [novoInscrito, setNovoInscrito] = useState({ nome: '', observacao: '' });
   const [salvandoInscrito, setSalvandoInscrito] = useState(false);
+  const [inscricaoParaRemover, setInscricaoParaRemover] = useState<any>(null);
+  const [removendoInscrito, setRemovendoInscrito] = useState(false);
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
@@ -202,6 +204,29 @@ export function ProfessorDashboard({
       toast.error(error?.mensagem || 'Erro ao adicionar inscrito');
     } finally {
       setSalvandoInscrito(false);
+    }
+  };
+
+  const handleRemoverInscrito = async (removerPagamento: boolean) => {
+    if (!inscricaoParaRemover) return;
+
+    setRemovendoInscrito(true);
+    try {
+      await api.removerInscritoAdmin(inscricaoParaRemover.id, removerPagamento);
+      toast.success(removerPagamento 
+        ? 'Inscrito e pagamento removidos com sucesso!' 
+        : 'Inscrito removido com sucesso!');
+      setInscricaoParaRemover(null);
+      // Recarregar lista de inscritos
+      const response = await api.listarInscritosAula(selectedAulaId);
+      setInscritosAula((response as any).inscricoes || []);
+      // Atualizar dados gerais
+      if (onRefresh) await onRefresh();
+    } catch (error: any) {
+      console.error('Erro ao remover inscrito:', error);
+      toast.error(error?.mensagem || 'Erro ao remover inscrito');
+    } finally {
+      setRemovendoInscrito(false);
     }
   };
 
@@ -1019,7 +1044,7 @@ export function ProfessorDashboard({
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="flex items-center gap-2">
                         <Badge 
                           className={
                             inscricao.pagamento?.status === 'aprovado' 
@@ -1036,6 +1061,14 @@ export function ProfessorDashboard({
                            inscricao.nomeManual ? 'Manual' :
                            inscricao.status === 'confirmada' ? 'Confirmado' : 'Pendente'}
                         </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setInscricaoParaRemover(inscricao)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -1048,6 +1081,70 @@ export function ProfessorDashboard({
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Remoção */}
+      <Dialog open={!!inscricaoParaRemover} onOpenChange={(open) => !open && setInscricaoParaRemover(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remover Inscrito</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja remover{' '}
+              <strong>
+                {inscricaoParaRemover?.aluno?.nome || inscricaoParaRemover?.nomeManual || inscricaoParaRemover?.alunoNome || 'este inscrito'}
+              </strong>
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-4">
+            {inscricaoParaRemover?.pagamento && (
+              <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+                Este inscrito possui um pagamento registrado. Escolha como deseja proceder:
+              </p>
+            )}
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleRemoverInscrito(false)}
+                disabled={removendoInscrito}
+                className="w-full justify-start"
+              >
+                {removendoInscrito ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Remover apenas o inscrito
+                {inscricaoParaRemover?.pagamento && (
+                  <span className="text-xs text-gray-500 ml-2">(mantém histórico de pagamento)</span>
+                )}
+              </Button>
+              {inscricaoParaRemover?.pagamento && (
+                <Button
+                  variant="destructive"
+                  onClick={() => handleRemoverInscrito(true)}
+                  disabled={removendoInscrito}
+                  className="w-full justify-start"
+                >
+                  {removendoInscrito ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  Remover inscrito e pagamento
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                onClick={() => setInscricaoParaRemover(null)}
+                disabled={removendoInscrito}
+                className="w-full"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

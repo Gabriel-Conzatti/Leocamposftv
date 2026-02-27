@@ -251,6 +251,17 @@ class APIService {
       throw this.handleError(error);
     }
   }
+
+  async removerInscritoAdmin(inscricaoId: string, removerPagamento: boolean = false) {
+    try {
+      const response = await this.api.delete<APIResponse>(
+        `/inscricoes/admin/${inscricaoId}?removerPagamento=${removerPagamento}`
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
   // ===== PAGAMENTOS =====
   async criarPreferencaMercadoPago(aulaId: string) {
     try {

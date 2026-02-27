@@ -211,6 +211,67 @@ export const cancelarInscricao = asyncHandler(
   }
 );
 
+/**
+ * Remover inscrito (apenas admin)
+ * DELETE /api/inscricoes/admin/:inscricaoId
+ */
+export const removerInscritoAdmin = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { inscricaoId } = req.params;
+    const { removerPagamento } = req.query;
+
+    // Verificar se é admin
+    if (!req.usuario?.isAdmin) {
+      throw new AppError(403, 'Apenas administradores podem remover inscritos');
+    }
+
+    const inscricao = await prisma.inscricao.findUnique({
+      where: { id: inscricaoId },
+      include: { 
+        aula: true,
+        pagamento: true,
+      },
+    });
+
+    if (!inscricao) {
+      throw new AppError(404, 'Inscrição não encontrada');
+    }
+
+    // Se removerPagamento, deletar o pagamento primeiro
+    if (removerPagamento === 'true' && inscricao.pagamento) {
+      await prisma.pagamento.delete({
+        where: { id: inscricao.pagamento.id },
+      });
+    }
+
+    // Deletar presença se existir
+    await prisma.presenca.deleteMany({
+      where: { inscricao_id: inscricaoId },
+    });
+
+    // Deletar inscrição
+    await prisma.inscricao.delete({
+      where: { id: inscricaoId },
+    });
+
+    // Atualizar vagas da aula
+    await prisma.aula.update({
+      where: { id: inscricao.aula_id },
+      data: {
+        vagasDisponiveis: inscricao.aula.vagasDisponiveis + 1,
+        status: 'aberta',
+      },
+    });
+
+    res.json({
+      sucesso: true,
+      mensagem: removerPagamento === 'true' 
+        ? 'Inscrito e pagamento removidos com sucesso' 
+        : 'Inscrito removido com sucesso',
+    });
+  }
+);
+
 export const atualizarPresenca = asyncHandler(
   async (req: Request, res: Response) => {
     const { inscricaoId } = req.params;
