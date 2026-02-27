@@ -429,14 +429,13 @@ export const obterPerfil = asyncHandler(
 // Obter contato do admin (Leo Campos) para recuperação de senha
 export const obterContatoAdmin = asyncHandler(
   async (req: Request, res: Response) => {
-    // Buscar o admin principal (Leo Campos)
-    const admin = await prisma.usuario.findFirst({
-      where: { isAdmin: true },
+    // Buscar o Leo Campos especificamente pelo email
+    const admin = await prisma.usuario.findUnique({
+      where: { email: 'leo1907campos@hotmail.com' },
       select: {
         nome: true,
         telefone: true,
       },
-      orderBy: { createdAt: 'asc' }, // Pegar o admin mais antigo (principal)
     });
 
     if (!admin || !admin.telefone) {
