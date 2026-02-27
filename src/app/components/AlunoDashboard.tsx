@@ -355,7 +355,7 @@ export function AlunoDashboard({
                                     {minhaInsc ? (
                                       minhaInsc.status === 'pendente' ? (
                                         <Button
-                                          className="w-full h-10 sm:h-12 text-xs sm:text-sm bg-amber-500 hover:bg-amber-600"
+                                          className="w-full h-10 sm:h-12 text-xs sm:text-sm bg-green-600 hover:bg-green-700"
                                           onClick={() => handleInscrever(aula.id)}
                                           disabled={inscrevendoAulaId === aula.id}
                                         >
