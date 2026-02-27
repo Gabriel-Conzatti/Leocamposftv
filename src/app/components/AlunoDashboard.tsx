@@ -403,7 +403,9 @@ export function AlunoDashboard({
                                               key={inscricao.id}
                                               className="flex items-center justify-between p-3 border rounded-lg"
                                             >
-                                              <span className="font-medium">{inscricao.alunoNome}</span>
+                                              <span className="font-medium">
+                                                {inscricao.alunoNome || inscricao.aluno?.nome || inscricao.nomeManual || 'Participante'}
+                                              </span>
                                             </div>
                                           ))
                                         )}

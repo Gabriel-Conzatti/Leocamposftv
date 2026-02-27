@@ -239,12 +239,12 @@ class APIService {
     }
   }
 
-  async adicionarInscritoManual(aulaId: string, nome: string, email: string) {
+  async adicionarInscritoManual(aulaId: string, nome: string, observacao: string) {
     try {
       const response = await this.api.post<APIResponse>('/inscricoes/admin/adicionar', {
         aulaId,
         nome,
-        email,
+        observacao,
       });
       return response.data;
     } catch (error) {

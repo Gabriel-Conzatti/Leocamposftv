@@ -52,11 +52,16 @@ model Aula {
 
 model Inscricao {
   id        String   @id @default(cuid())
-  aluno_id  String
-  aluno     Usuario  @relation(fields: [aluno_id], references: [id], onDelete: Cascade)
+  aluno_id  String?
+  aluno     Usuario?  @relation(fields: [aluno_id], references: [id], onDelete: Cascade)
   aula_id   String
   aula      Aula     @relation(fields: [aula_id], references: [id], onDelete: Cascade)
   status    String   @default("pendente") // "pendente", "confirmada", "cancelada"
+  
+  // Campos para inscrição manual (sem conta)
+  nomeManual    String?
+  observacao    String?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

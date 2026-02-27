@@ -48,7 +48,7 @@ export function ProfessorDashboard({
   const [selectedAulaTitulo, setSelectedAulaTitulo] = useState('');
   const [selectedAulaId, setSelectedAulaId] = useState('');
   const [mostrarFormNovoInscrito, setMostrarFormNovoInscrito] = useState(false);
-  const [novoInscrito, setNovoInscrito] = useState({ nome: '', email: '' });
+  const [novoInscrito, setNovoInscrito] = useState({ nome: '', observacao: '' });
   const [salvandoInscrito, setSalvandoInscrito] = useState(false);
   const [formData, setFormData] = useState({
     titulo: '',
@@ -167,7 +167,7 @@ export function ProfessorDashboard({
     setLoadingInscritos(true);
     setIsInscritosDialogOpen(true);
     setMostrarFormNovoInscrito(false);
-    setNovoInscrito({ nome: '', email: '' });
+    setNovoInscrito({ nome: '', observacao: '' });
     try {
       const response = await api.listarInscritosAula(aulaId);
       setInscritosAula((response as any).inscricoes || []);
@@ -181,17 +181,17 @@ export function ProfessorDashboard({
   };
 
   const handleAdicionarInscrito = async () => {
-    if (!novoInscrito.nome || !novoInscrito.email) {
-      toast.error('Preencha nome e email');
+    if (!novoInscrito.nome) {
+      toast.error('Preencha o nome');
       return;
     }
 
     setSalvandoInscrito(true);
     try {
-      await api.adicionarInscritoManual(selectedAulaId, novoInscrito.nome, novoInscrito.email);
+      await api.adicionarInscritoManual(selectedAulaId, novoInscrito.nome, novoInscrito.observacao);
       toast.success('Inscrito adicionado com sucesso!');
       setMostrarFormNovoInscrito(false);
-      setNovoInscrito({ nome: '', email: '' });
+      setNovoInscrito({ nome: '', observacao: '' });
       // Recarregar lista de inscritos
       const response = await api.listarInscritosAula(selectedAulaId);
       setInscritosAula((response as any).inscricoes || []);
@@ -909,7 +909,7 @@ export function ProfessorDashboard({
         setIsInscritosDialogOpen(open);
         if (!open) {
           setMostrarFormNovoInscrito(false);
-          setNovoInscrito({ nome: '', email: '' });
+          setNovoInscrito({ nome: '', observacao: '' });
         }
       }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
@@ -944,13 +944,12 @@ export function ProfessorDashboard({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="novoEmail">Email do Aluno</Label>
+                  <Label htmlFor="novoObservacao">Observação</Label>
                   <Input
-                    id="novoEmail"
-                    type="email"
-                    placeholder="email@exemplo.com"
-                    value={novoInscrito.email}
-                    onChange={(e) => setNovoInscrito({ ...novoInscrito, email: e.target.value })}
+                    id="novoObservacao"
+                    placeholder="Ex: Pagou por fora, adicionado manualmente"
+                    value={novoInscrito.observacao}
+                    onChange={(e) => setNovoInscrito({ ...novoInscrito, observacao: e.target.value })}
                   />
                 </div>
                 <div className="flex gap-2">
@@ -972,7 +971,7 @@ export function ProfessorDashboard({
                     variant="outline" 
                     onClick={() => {
                       setMostrarFormNovoInscrito(false);
-                      setNovoInscrito({ nome: '', email: '' });
+                      setNovoInscrito({ nome: '', observacao: '' });
                     }}
                   >
                     Cancelar
@@ -998,12 +997,20 @@ export function ProfessorDashboard({
                   <CardContent className="py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{inscricao.aluno?.nome || 'Nome não disponível'}</p>
+                        <p className="font-medium text-gray-900">
+                          {inscricao.aluno?.nome || inscricao.nomeManual || inscricao.alunoNome || 'Nome não disponível'}
+                        </p>
                         <div className="flex flex-col gap-1 mt-1 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            <span>{inscricao.aluno?.email || '-'}</span>
-                          </div>
+                          {inscricao.aluno?.email ? (
+                            <div className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              <span>{inscricao.aluno.email}</span>
+                            </div>
+                          ) : inscricao.observacao ? (
+                            <p className="text-xs text-gray-500 italic">{inscricao.observacao}</p>
+                          ) : inscricao.nomeManual ? (
+                            <p className="text-xs text-gray-500 italic">Adicionado manualmente</p>
+                          ) : null}
                           {inscricao.aluno?.telefone && (
                             <div className="flex items-center gap-1">
                               <Phone className="w-3 h-3" />
@@ -1019,11 +1026,14 @@ export function ProfessorDashboard({
                               ? 'bg-green-500 text-white' 
                               : inscricao.pagamento?.status === 'pendente'
                               ? 'bg-yellow-500 text-white'
+                              : inscricao.nomeManual
+                              ? 'bg-blue-500 text-white'
                               : 'bg-gray-500 text-white'
                           }
                         >
                           {inscricao.pagamento?.status === 'aprovado' ? 'Pago' : 
                            inscricao.pagamento?.status === 'pendente' ? 'Pendente' : 
+                           inscricao.nomeManual ? 'Manual' :
                            inscricao.status === 'confirmada' ? 'Confirmado' : 'Pendente'}
                         </Badge>
                       </div>

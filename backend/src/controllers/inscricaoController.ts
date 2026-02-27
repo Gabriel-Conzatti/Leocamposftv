@@ -129,13 +129,20 @@ export const obterInscricoesAula = asyncHandler(
         aula: {
           select: { id: true, titulo: true },
         },
+        pagamento: true,
       },
     });
+
+    // Formatar para incluir alunoNome para inscrições manuais
+    const inscricoesFormatadas = inscricoes.map((insc: any) => ({
+      ...insc,
+      alunoNome: insc.aluno?.nome || insc.nomeManual || 'Inscrito',
+    }));
 
     res.json({
       sucesso: true,
       mensagem: 'Inscrições obtidas com sucesso',
-      dados: inscricoes,
+      dados: inscricoesFormatadas,
     });
   }
 );
@@ -258,9 +265,11 @@ export const obterTodasInscricoes = asyncHandler(
     });
 
     // Mapear 'aluno' para 'usuario' para compatibilidade com frontend
+    // E incluir nome manual para inscrições sem conta
     const inscricoesFormatadas = inscricoes.map((insc: any) => ({
       ...insc,
       usuario: insc.aluno,
+      alunoNome: insc.aluno?.nome || insc.nomeManual || 'Inscrito',
     }));
 
     res.json({
@@ -277,10 +286,10 @@ export const obterTodasInscricoes = asyncHandler(
  */
 export const adicionarInscritoManual = asyncHandler(
   async (req: Request, res: Response) => {
-    const { aulaId, nome, email } = req.body;
+    const { aulaId, nome, observacao } = req.body;
 
-    if (!aulaId || !nome || !email) {
-      throw new AppError(400, 'ID da aula, nome e email são obrigatórios');
+    if (!aulaId || !nome) {
+      throw new AppError(400, 'ID da aula e nome são obrigatórios');
     }
 
     // Verificar se o usuário é admin
@@ -301,52 +310,13 @@ export const adicionarInscritoManual = asyncHandler(
       throw new AppError(400, 'Aula sem vagas disponíveis');
     }
 
-    // Buscar ou criar o usuário
-    let usuario = await prisma.usuario.findUnique({
-      where: { email: email.toLowerCase() },
-    });
-
-    if (!usuario) {
-      // Criar usuário com senha temporária (pode ser alterada depois)
-      const { hashSenha } = await import('../utils/bcrypt.js');
-      const senhaTemp = await hashSenha('temp123');
-      
-      usuario = await prisma.usuario.create({
-        data: {
-          nome,
-          email: email.toLowerCase(),
-          senha: senhaTemp,
-          isAdmin: false,
-        },
-      });
-    }
-
-    // Verificar se já está inscrito
-    const jaInscrito = await prisma.inscricao.findFirst({
-      where: {
-        aula_id: aulaId,
-        aluno_id: usuario.id,
-      },
-    });
-
-    if (jaInscrito) {
-      throw new AppError(400, 'Este aluno já está inscrito nesta aula');
-    }
-
-    // Criar inscrição como confirmada (adicionado pelo admin)
+    // Criar inscrição manual (sem vincular a usuário)
     const novaInscricao = await prisma.inscricao.create({
       data: {
-        aluno_id: usuario.id,
         aula_id: aulaId,
+        nomeManual: nome,
+        observacao: observacao || 'Adicionado manualmente pelo admin',
         status: 'confirmada',
-      },
-      include: {
-        aluno: {
-          select: { id: true, nome: true, email: true },
-        },
-        aula: {
-          select: { id: true, titulo: true, preco: true },
-        },
       },
     });
 
@@ -362,7 +332,10 @@ export const adicionarInscritoManual = asyncHandler(
     res.status(201).json({
       sucesso: true,
       mensagem: 'Inscrito adicionado com sucesso',
-      dados: novaInscricao,
+      dados: {
+        ...novaInscricao,
+        aluno: { nome: nome },
+      },
     });
   }
 );
