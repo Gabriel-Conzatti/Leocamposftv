@@ -466,17 +466,17 @@ export const cancelarAulaComNotificacao = asyncHandler(
     console.log(`❌ Aula cancelada: ${aula.titulo}`);
     console.log(`📧 Notificando ${aula.inscricoes.length} alunos inscritos`);
 
-    // Notificar todos os alunos inscritos
+    const dataFormatada = new Date(aula.data).toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    // Notificar todos os alunos inscritos via EMAIL
     let emailsEnviados = 0;
     for (const inscricao of aula.inscricoes) {
       if (!inscricao.aluno?.email) continue;
-
-      const dataFormatada = new Date(aula.data).toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
 
       const assunto = `[FutevoleiPro] ❌ Aula Cancelada: ${aula.titulo}`;
       const html = emailAulaCancelada(
@@ -498,7 +498,7 @@ export const cancelarAulaComNotificacao = asyncHandler(
 
     res.json({
       sucesso: true,
-      mensagem: `Aula cancelada. Notificação enviada para ${emailsEnviados} alunos`,
+      mensagem: `Aula cancelada. ${emailsEnviados} emails enviados`,
       dados: {
         aula: aulaAtualizada,
         totalAlunosNotificados: emailsEnviados,
@@ -574,3 +574,5 @@ export const listarInscritosAula = asyncHandler(async (req: Request, res: Respon
     },
   });
 });
+
+

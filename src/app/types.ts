@@ -30,6 +30,7 @@ export interface Inscricao {
   alunoId?: string;
   aulaId?: string;
   alunoNome?: string;
+  nomeManual?: string;
   status?: 'pendente' | 'confirmada' | 'cancelada';
   statusPagamento?: 'pendente' | 'pago' | 'cancelado' | 'reembolsado';
   valorPago?: number;

@@ -652,7 +652,7 @@ export function ProfessorDashboard({
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 flex-wrap">
                                   <Button 
                                     variant="outline" 
                                     size="sm"
@@ -676,15 +676,12 @@ export function ProfessorDashboard({
                                   <Button 
                                     variant="outline" 
                                     size="sm"
-                                    className="text-red-500 h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm"
-                                    onClick={() => {
-                                      if (confirm('Tem certeza que deseja deletar esta aula?')) {
-                                        onDeleteAula(aula.id);
-                                      }
-                                    }}
-                                    title="Deletar aula"
+                                    className="text-red-500 border-red-500 hover:bg-red-50 h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm"
+                                    onClick={() => handleDeleteAula(aula.id)}
+                                    title="Excluir aula"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
+                                    <span className="hidden sm:inline">Excluir</span>
                                   </Button>
                                 </div>
                               </div>

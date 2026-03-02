@@ -54,7 +54,8 @@ export default function App() {
       if (response.dados) {
         const inscricoesFormatadas = (response.dados as any[]).map(insc => ({
           ...insc,
-          alunoNome: insc.aluno?.nome || insc.usuario?.nome || 'Aluno',
+          // Usar alunoNome que já vem formatado do backend (inclui nomeManual para inscritos manualmente)
+          alunoNome: insc.alunoNome || insc.aluno?.nome || insc.usuario?.nome || insc.nomeManual || 'Aluno',
         }));
         setInscricoes(inscricoesFormatadas as Inscricao[]);
       }
