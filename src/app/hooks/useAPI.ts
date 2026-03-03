@@ -43,10 +43,10 @@ export function useInscricoes() {
       // Buscar TODAS as inscrições para poder mostrar participantes
       const response = await api.listarInscricoes();
       if (response.sucesso && response.dados) {
-        // Mapear para incluir alunoNome
+        // Mapear para incluir alunoNome (usando o que vem do backend ou fallback com nomeManual)
         const inscricoesFormatadas = (response.dados as any[]).map(insc => ({
           ...insc,
-          alunoNome: insc.aluno?.nome || insc.usuario?.nome || 'Aluno',
+          alunoNome: insc.alunoNome || insc.aluno?.nome || insc.usuario?.nome || insc.nomeManual || 'Aluno',
         }));
         setInscricoes(inscricoesFormatadas);
       }
