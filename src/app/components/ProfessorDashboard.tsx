@@ -51,6 +51,10 @@ export function ProfessorDashboard({
   const [inscricaoParaRemover, setInscricaoParaRemover] = useState<any>(null);
   const [removendoInscrito, setRemovendoInscrito] = useState(false);
   const [confirmandoAula, setConfirmandoAula] = useState<string | null>(null);
+  const [modoInscricao, setModoInscricao] = useState<'manual' | 'existente'>('manual');
+  const [usuariosDisponiveis, setUsuariosDisponiveis] = useState<any[]>([]);
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<string>('');
+  const [carregandoUsuarios, setCarregandoUsuarios] = useState(false);
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
@@ -200,17 +204,27 @@ export function ProfessorDashboard({
   };
 
   const handleAdicionarInscrito = async () => {
-    if (!novoInscrito.nome) {
+    if (modoInscricao === 'manual' && !novoInscrito.nome) {
       toast.error('Preencha o nome');
+      return;
+    }
+    if (modoInscricao === 'existente' && !usuarioSelecionado) {
+      toast.error('Selecione um usuário');
       return;
     }
 
     setSalvandoInscrito(true);
     try {
-      await api.adicionarInscritoManual(selectedAulaId, novoInscrito.nome, novoInscrito.observacao);
+      if (modoInscricao === 'existente') {
+        await api.adicionarInscritoManual(selectedAulaId, undefined, novoInscrito.observacao, usuarioSelecionado);
+      } else {
+        await api.adicionarInscritoManual(selectedAulaId, novoInscrito.nome, novoInscrito.observacao);
+      }
       toast.success('Inscrito adicionado com sucesso!');
       setMostrarFormNovoInscrito(false);
       setNovoInscrito({ nome: '', observacao: '' });
+      setUsuarioSelecionado('');
+      setModoInscricao('manual');
       // Recarregar lista de inscritos
       const response = await api.listarInscritosAula(selectedAulaId);
       setInscritosAula((response as any).dados?.inscritos || []);
@@ -222,6 +236,30 @@ export function ProfessorDashboard({
     } finally {
       setSalvandoInscrito(false);
     }
+  };
+
+  const carregarUsuarios = async () => {
+    setCarregandoUsuarios(true);
+    try {
+      const response = await api.listarUsuarios();
+      if (response.sucesso && response.dados) {
+        // Filtrar usuários que já estão inscritos na aula
+        const idsInscritos = inscritosAula.map((i: any) => i.aluno?.id || i.aluno_id).filter(Boolean);
+        const usuariosFiltrados = (response.dados as any[]).filter(
+          (u: any) => !idsInscritos.includes(u.id)
+        );
+        setUsuariosDisponiveis(usuariosFiltrados);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+    } finally {
+      setCarregandoUsuarios(false);
+    }
+  };
+
+  const handleAbrirFormInscricao = () => {
+    setMostrarFormNovoInscrito(true);
+    carregarUsuarios();
   };
 
   const handleRemoverInscrito = async (removerPagamento: boolean) => {
@@ -908,6 +946,8 @@ export function ProfessorDashboard({
         if (!open) {
           setMostrarFormNovoInscrito(false);
           setNovoInscrito({ nome: '', observacao: '' });
+          setUsuarioSelecionado('');
+          setModoInscricao('manual');
         }
       }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
@@ -919,7 +959,7 @@ export function ProfessorDashboard({
           {/* Botão para adicionar novo inscrito */}
           {!mostrarFormNovoInscrito && !loadingInscritos && (
             <Button 
-              onClick={() => setMostrarFormNovoInscrito(true)}
+              onClick={handleAbrirFormInscricao}
               className="w-full mb-4"
               variant="outline"
             >
@@ -932,15 +972,70 @@ export function ProfessorDashboard({
           {mostrarFormNovoInscrito && (
             <Card className="mb-4 border-2 border-dashed border-primary/50">
               <CardContent className="pt-4 space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="novoNome">Nome do Aluno</Label>
-                  <Input
-                    id="novoNome"
-                    placeholder="Nome completo"
-                    value={novoInscrito.nome}
-                    onChange={(e) => setNovoInscrito({ ...novoInscrito, nome: e.target.value })}
-                  />
+                {/* Seletor de modo */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={modoInscricao === 'existente' ? 'default' : 'outline'}
+                    className="flex-1"
+                    onClick={() => setModoInscricao('existente')}
+                  >
+                    Usuário Cadastrado
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={modoInscricao === 'manual' ? 'default' : 'outline'}
+                    className="flex-1"
+                    onClick={() => setModoInscricao('manual')}
+                  >
+                    Novo (Manual)
+                  </Button>
                 </div>
+
+                {/* Campo para usuário existente */}
+                {modoInscricao === 'existente' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="usuarioExistente">Selecionar Usuário</Label>
+                    {carregandoUsuarios ? (
+                      <div className="flex items-center justify-center py-2">
+                        <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                        <span className="text-sm text-gray-500">Carregando...</span>
+                      </div>
+                    ) : usuariosDisponiveis.length === 0 ? (
+                      <p className="text-sm text-gray-500 py-2">
+                        Todos os usuários cadastrados já estão inscritos
+                      </p>
+                    ) : (
+                      <select
+                        id="usuarioExistente"
+                        value={usuarioSelecionado}
+                        onChange={(e) => setUsuarioSelecionado(e.target.value)}
+                        className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      >
+                        <option value="">Selecione um usuário...</option>
+                        {usuariosDisponiveis.map((usuario: any) => (
+                          <option key={usuario.id} value={usuario.id}>
+                            {usuario.nome} ({usuario.email})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
+
+                {/* Campo para inscrição manual */}
+                {modoInscricao === 'manual' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="novoNome">Nome do Aluno</Label>
+                    <Input
+                      id="novoNome"
+                      placeholder="Nome completo"
+                      value={novoInscrito.nome}
+                      onChange={(e) => setNovoInscrito({ ...novoInscrito, nome: e.target.value })}
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="novoObservacao">Observação</Label>
                   <Input
@@ -970,6 +1065,8 @@ export function ProfessorDashboard({
                     onClick={() => {
                       setMostrarFormNovoInscrito(false);
                       setNovoInscrito({ nome: '', observacao: '' });
+                      setUsuarioSelecionado('');
+                      setModoInscricao('manual');
                     }}
                   >
                     Cancelar

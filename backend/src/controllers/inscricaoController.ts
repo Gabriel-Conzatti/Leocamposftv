@@ -355,10 +355,11 @@ export const obterTodasInscricoes = asyncHandler(
  */
 export const adicionarInscritoManual = asyncHandler(
   async (req: Request, res: Response) => {
-    const { aulaId, nome, observacao } = req.body;
+    const { aulaId, nome, observacao, usuarioId } = req.body;
 
-    if (!aulaId || !nome) {
-      throw new AppError(400, 'ID da aula e nome são obrigatórios');
+    // Se não tiver usuarioId, precisa do nome
+    if (!aulaId || (!nome && !usuarioId)) {
+      throw new AppError(400, 'ID da aula e nome (ou usuário) são obrigatórios');
     }
 
     // Verificar se o usuário é admin
@@ -391,13 +392,47 @@ export const adicionarInscritoManual = asyncHandler(
       throw new AppError(400, 'Aula sem vagas disponíveis');
     }
 
+    // Se tiver usuarioId, verificar se usuário existe e se já está inscrito
+    let usuario = null;
+    if (usuarioId) {
+      usuario = await prisma.usuario.findUnique({
+        where: { id: usuarioId },
+      });
+
+      if (!usuario) {
+        throw new AppError(404, 'Usuário não encontrado');
+      }
+
+      // Verificar se já está inscrito
+      const jaInscrito = await prisma.inscricao.findFirst({
+        where: {
+          aula_id: aulaId,
+          aluno_id: usuarioId,
+        },
+      });
+
+      if (jaInscrito) {
+        throw new AppError(400, `${usuario.nome} já está inscrito nesta aula`);
+      }
+    }
+
     // Criar inscrição manual já CONFIRMADA (ocupa vaga imediatamente)
     const novaInscricao = await prisma.inscricao.create({
       data: {
         aula_id: aulaId,
-        nomeManual: nome,
+        aluno_id: usuarioId || null,
+        nomeManual: usuarioId ? null : nome,
         observacao: observacao || 'Adicionado manualmente pelo admin',
         status: 'confirmada',
+      },
+      include: {
+        aluno: {
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+          },
+        },
       },
     });
 
@@ -406,7 +441,7 @@ export const adicionarInscritoManual = asyncHandler(
       mensagem: 'Inscrito adicionado com sucesso',
       dados: {
         ...novaInscricao,
-        aluno: { nome: nome },
+        aluno: usuario ? { id: usuario.id, nome: usuario.nome, email: usuario.email } : { nome: nome },
       },
     });
   }

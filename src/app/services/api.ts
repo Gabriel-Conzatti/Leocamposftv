@@ -275,13 +275,23 @@ class APIService {
     }
   }
 
-  async adicionarInscritoManual(aulaId: string, nome: string, observacao: string) {
+  async adicionarInscritoManual(aulaId: string, nome?: string, observacao?: string, usuarioId?: string) {
     try {
       const response = await this.api.post<APIResponse>('/inscricoes/admin/adicionar', {
         aulaId,
         nome,
         observacao,
+        usuarioId,
       });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async listarUsuarios() {
+    try {
+      const response = await this.api.get<APIResponse>('/auth/usuarios');
       return response.data;
     } catch (error) {
       throw this.handleError(error);

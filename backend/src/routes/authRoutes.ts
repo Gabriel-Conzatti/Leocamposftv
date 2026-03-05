@@ -8,6 +8,7 @@ import {
   atualizarPerfil,
   obterPerfil,
   obterContatoAdmin,
+  listarUsuarios,
 } from '../controllers/authController.js';
 import { autenticacao } from '../middlewares/autenticacao.js';
 
@@ -26,5 +27,6 @@ router.get('/contato-admin', obterContatoAdmin);
 // Rotas de perfil (autenticadas)
 router.get('/perfil', autenticacao, obterPerfil);
 router.put('/perfil', autenticacao, atualizarPerfil);
+router.get('/usuarios', autenticacao, listarUsuarios);
 
 export default router;

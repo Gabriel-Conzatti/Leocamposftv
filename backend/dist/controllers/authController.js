@@ -363,4 +363,28 @@ export const obterContatoAdmin = asyncHandler(async (req, res) => {
         },
     });
 });
+/**
+ * Listar todos os usuários (apenas admin)
+ * GET /api/auth/usuarios
+ */
+export const listarUsuarios = asyncHandler(async (req, res) => {
+    // Verificar se é admin
+    if (!req.usuario?.isAdmin) {
+        throw new AppError(403, 'Apenas administradores podem listar usuários');
+    }
+    const usuarios = await prisma.usuario.findMany({
+        select: {
+            id: true,
+            nome: true,
+            email: true,
+            telefone: true,
+            isAdmin: true,
+        },
+        orderBy: { nome: 'asc' },
+    });
+    res.json({
+        sucesso: true,
+        dados: usuarios,
+    });
+});
 //# sourceMappingURL=authController.js.map

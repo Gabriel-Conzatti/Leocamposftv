@@ -23,4 +23,9 @@ export declare const atualizarPerfil: (req: Request, res: Response, next: import
  */
 export declare const obterPerfil: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const obterContatoAdmin: (req: Request, res: Response, next: import("express").NextFunction) => void;
+/**
+ * Listar todos os usuários (apenas admin)
+ * GET /api/auth/usuarios
+ */
+export declare const listarUsuarios: (req: Request, res: Response, next: import("express").NextFunction) => void;
 //# sourceMappingURL=authController.d.ts.map
