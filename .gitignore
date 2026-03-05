@@ -3,8 +3,7 @@ node_modules/
 .pnp
 .pnp.js
 
-# Build outputs
-dist/
+# Build outputs (mantendo dist/ para deploy no Hostinger)
 build/
 .next/
 out/
