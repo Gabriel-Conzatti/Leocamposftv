@@ -48,9 +48,9 @@ app.get('/api/health', async (req, res) => {
         await prisma.$queryRaw `SELECT 1`;
         res.json({
             sucesso: true,
-            mensagem: 'Servidor funcionando e conectado ao PostgreSQL',
+            mensagem: 'Servidor funcionando e conectado ao MySQL',
             timestamp: new Date().toISOString(),
-            database: 'PostgreSQL ✅',
+            database: 'MySQL ✅',
         });
     }
     catch (error) {
@@ -58,7 +58,7 @@ app.get('/api/health', async (req, res) => {
             sucesso: false,
             mensagem: 'Erro ao conectar ao banco de dados',
             timestamp: new Date().toISOString(),
-            database: 'PostgreSQL ❌',
+            database: 'MySQL ❌',
         });
     }
 });
