@@ -45,7 +45,10 @@ app.use(cors(corsOptions));
 // Health check com status do banco
 app.get('/api/health', async (req, res) => {
     try {
+        console.log('🔍 Tentando conectar ao banco...');
+        console.log('🔍 DATABASE_URL:', process.env.DATABASE_URL?.substring(0, 50) + '...');
         await prisma.$queryRaw `SELECT 1`;
+        console.log('✅ Conexão com banco OK');
         res.json({
             sucesso: true,
             mensagem: 'Servidor funcionando e conectado ao MySQL',
@@ -54,9 +57,12 @@ app.get('/api/health', async (req, res) => {
         });
     }
     catch (error) {
+        console.error('❌ Erro ao conectar ao banco:', error.message);
+        console.error('❌ Erro completo:', error);
         res.status(500).json({
             sucesso: false,
             mensagem: 'Erro ao conectar ao banco de dados',
+            erro: error.message,
             timestamp: new Date().toISOString(),
             database: 'MySQL ❌',
         });
