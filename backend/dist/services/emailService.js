@@ -410,7 +410,9 @@ export const emailAvisoAgendamento = (nomeAluno, nomeAula, dataAula, horarioAula
  * Template: Recuperação de Senha
  */
 export const emailRecuperacaoSenha = (nomeUsuario, tokenReset, urlFrontend = process.env.FRONTEND_URL || 'http://localhost:5173') => {
-    const linkReset = `${urlFrontend}/recuperar-senha?token=${tokenReset}`;
+    // URL sem /recuperar-senha porque Hostinger não suporta SPA routing
+    // O App.tsx detecta ?token=xxx e redireciona automaticamente
+    const linkReset = `${urlFrontend}?token=${tokenReset}`;
     return `
     <!DOCTYPE html>
     <html>

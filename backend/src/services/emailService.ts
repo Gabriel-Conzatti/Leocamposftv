@@ -478,7 +478,9 @@ export const emailRecuperacaoSenha = (
   tokenReset: string,
   urlFrontend: string = process.env.FRONTEND_URL || 'http://localhost:5173'
 ): string => {
-  const linkReset = `${urlFrontend}/recuperar-senha?token=${tokenReset}`;
+  // URL sem /recuperar-senha porque Hostinger não suporta SPA routing
+  // O App.tsx detecta ?token=xxx e redireciona automaticamente
+  const linkReset = `${urlFrontend}?token=${tokenReset}`;
   
   return `
     <!DOCTYPE html>
