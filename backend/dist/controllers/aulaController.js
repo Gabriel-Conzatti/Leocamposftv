@@ -1,0 +1,488 @@
+import { asyncHandler, AppError } from '../utils/errors.js';
+import { validar, criarAulaSchema } from '../utils/validacoes.js';
+import prisma from '../lib/prisma.js';
+import { enviarEmail, emailNovaAulaDisponivel, emailAulaCancelada } from '../services/emailService.js';
+export const listarAulas = asyncHandler(async (req, res) => {
+    const aulas = await prisma.aula.findMany({
+        include: {
+            professor: {
+                select: { id: true, nome: true, email: true },
+            },
+            // SÓ conta inscrições CONFIRMADAS (pagas ou manuais) para vagas
+            _count: {
+                select: {
+                    inscricoes: {
+                        where: { status: 'confirmada' }
+                    }
+                }
+            },
+        },
+        orderBy: { data: 'asc' },
+    });
+    console.log('📋 [API] Aulas encontradas no banco:', aulas.length);
+    // Transformar os dados para o formato esperado pelo frontend
+    // Calcular vagasDisponiveis dinamicamente
+    const aulasFormatadas = aulas.map(aula => ({
+        ...aula,
+        data: aula.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
+        criadaEm: aula.createdAt?.toISOString() || new Date().toISOString(),
+        atualizadaEm: aula.updatedAt?.toISOString() || new Date().toISOString(),
+        vagasDisponiveis: aula.vagas - aula._count.inscricoes,
+    }));
+    console.log('📊 [API] Resposta formatada:', JSON.stringify(aulasFormatadas, null, 2));
+    res.json({
+        sucesso: true,
+        mensagem: 'Aulas listadas com sucesso',
+        dados: aulasFormatadas,
+    });
+});
+export const obterAula = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    if (!id) {
+        throw new AppError(400, 'ID da aula é obrigatório');
+    }
+    const aula = await prisma.aula.findUnique({
+        where: { id },
+        include: {
+            professor: {
+                select: { id: true, nome: true, email: true },
+            },
+            inscricoes: true,
+        },
+    });
+    if (!aula) {
+        throw new AppError(404, 'Aula não encontrada');
+    }
+    // Transformar os dados para o formato esperado pelo frontend
+    const aulaFormatada = {
+        ...aula,
+        data: aula.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
+        criadaEm: aula.createdAt?.toISOString() || new Date().toISOString(),
+        atualizadaEm: aula.updatedAt?.toISOString() || new Date().toISOString(),
+    };
+    res.json({
+        sucesso: true,
+        mensagem: 'Aula obtida com sucesso',
+        dados: aulaFormatada,
+    });
+});
+export const criarAula = asyncHandler(async (req, res) => {
+    const { titulo, descricao, data, horario, duracao, local, preco, vagas } = req.body;
+    console.log('📝 Criando aula com dados:', { titulo, descricao, data, horario, duracao, local, preco, vagas });
+    console.log('👤 Usuário autenticado:', req.usuario);
+    // Validar dados
+    const { valido, mensagens, value } = validar(criarAulaSchema, {
+        titulo,
+        descricao,
+        data,
+        horario,
+        duracao,
+        local,
+        preco,
+        vagas,
+    });
+    if (!valido) {
+        console.error('❌ Erro de validação:', mensagens);
+        throw new AppError(400, mensagens || 'Dados inválidos');
+    }
+    // Converter string de data para Date object
+    let dataObj;
+    if (typeof value.data === 'string') {
+        // Construir datetime no formato ISO: YYYY-MM-DDTHH:MM:SS
+        const dataTimeStr = `${value.data}T${value.horario}:00`;
+        dataObj = new Date(dataTimeStr);
+    }
+    else {
+        dataObj = new Date(value.data);
+    }
+    // Verificar se a data é válida
+    if (isNaN(dataObj.getTime())) {
+        console.error('❌ Data inválida:', dataObj);
+        throw new AppError(400, 'Data inválida');
+    }
+    // Obter data/hora atual em Brasília (UTC-3) de forma robusta
+    const agora = new Date();
+    const formatter = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    const partes = formatter.formatToParts(agora);
+    const diaHojeBrasilia = partes.find(p => p.type === 'day')?.value || '01';
+    const mesHojeBrasilia = partes.find(p => p.type === 'month')?.value || '01';
+    const anoHojeBrasilia = partes.find(p => p.type === 'year')?.value || '2026';
+    // Converter data para string se necessário
+    const dataStr = typeof value.data === 'string' ? value.data : value.data.toISOString().split('T')[0];
+    const [ano, mes, dia] = dataStr.split('-');
+    // Criar datas usando valores locais (Brasília)
+    const dataAulaLocal = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 0, 0, 0, 0);
+    const dataHojeLocal = new Date(parseInt(anoHojeBrasilia), parseInt(mesHojeBrasilia) - 1, parseInt(diaHojeBrasilia), 0, 0, 0, 0);
+    const dataHojeBrasiliaStr = `${anoHojeBrasilia}-${mesHojeBrasilia}-${diaHojeBrasilia}`;
+    const horaAtualBrasilia = partes.find(p => p.type === 'hour')?.value + ':' + partes.find(p => p.type === 'minute')?.value + ':' + partes.find(p => p.type === 'second')?.value;
+    console.log('🕐 Verificando data/hora (Fuso Brasília - UTC-3):');
+    console.log('   Data da aula: ', value.data);
+    console.log('   Hora da aula: ', value.horario);
+    console.log('   Data hoje:    ', dataHojeBrasiliaStr);
+    console.log('   Hora atual:   ', horaAtualBrasilia);
+    // Rejeitar apenas se a data estiver no passado
+    if (dataAulaLocal < dataHojeLocal) {
+        console.error('❌ Data no passado:', {
+            dataAula: value.data,
+            dataHoje: dataHojeBrasiliaStr,
+        });
+        throw new AppError(400, 'Data não pode ser no passado');
+    }
+    console.log('✅ Data validada (Brasília) - aceitando aula para', value.data);
+    if (!req.usuario) {
+        throw new AppError(401, 'Usuário não autenticado');
+    }
+    const novaAula = await prisma.aula.create({
+        data: {
+            titulo: value.titulo,
+            descricao: value.descricao || '',
+            professor_id: req.usuario.id,
+            data: dataObj,
+            horario: value.horario,
+            duracao: value.duracao,
+            local: value.local,
+            preco: value.preco,
+            vagas: value.vagas,
+            vagasDisponiveis: value.vagas,
+            status: 'aberta',
+        },
+        include: {
+            professor: {
+                select: { id: true, nome: true, email: true },
+            },
+        },
+    });
+    console.log('✅ Aula criada com sucesso:', novaAula.id);
+    // Transformar os dados para o formato esperado pelo frontend
+    const novaAulaFormatada = {
+        ...novaAula,
+        data: novaAula.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
+        criadaEm: novaAula.createdAt?.toISOString() || new Date().toISOString(),
+        atualizadaEm: novaAula.updatedAt?.toISOString() || new Date().toISOString(),
+    };
+    res.status(201).json({
+        sucesso: true,
+        mensagem: 'Aula criada com sucesso',
+        dados: novaAulaFormatada,
+    });
+});
+export const atualizarAula = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { titulo, descricao, data, horario, duracao, local, preco, vagas, status } = req.body;
+    if (!id) {
+        throw new AppError(400, 'ID da aula é obrigatório');
+    }
+    // Validar dados opcionais se fornecidos
+    if (titulo || data || horario || duracao || local || preco || vagas) {
+        const { valido, mensagens } = validar(criarAulaSchema, {
+            titulo: titulo || 'temp',
+            data: data || new Date(),
+            horario: horario || '00:00',
+            duracao: duracao || 60,
+            local: local || 'temp',
+            preco: preco || 0,
+            vagas: vagas || 1,
+        });
+        if (!valido) {
+            throw new AppError(400, mensagens || 'Dados inválidos');
+        }
+    }
+    const aula = await prisma.aula.findUnique({
+        where: { id },
+    });
+    if (!aula) {
+        throw new AppError(404, 'Aula não encontrada');
+    }
+    // Admins podem atualizar qualquer aula; professores apenas suas próprias
+    if (!req.usuario.isAdmin && aula.professor_id !== req.usuario.id) {
+        throw new AppError(403, 'Você não tem permissão para atualizar esta aula');
+    }
+    const aulaAtualizada = await prisma.aula.update({
+        where: { id },
+        data: {
+            titulo: titulo || aula.titulo,
+            descricao: descricao || aula.descricao,
+            data: data ? new Date(data) : aula.data,
+            horario: horario || aula.horario,
+            duracao: duracao || aula.duracao,
+            local: local || aula.local,
+            preco: preco !== undefined ? preco : aula.preco,
+            vagas: vagas || aula.vagas,
+            status: status || aula.status,
+        },
+        include: {
+            professor: {
+                select: { id: true, nome: true, email: true },
+            },
+            // SÓ conta inscrições CONFIRMADAS para vagas
+            _count: {
+                select: {
+                    inscricoes: {
+                        where: { status: 'confirmada' }
+                    }
+                }
+            },
+        },
+    });
+    // Transformar os dados para o formato esperado pelo frontend
+    // Calcular vagasDisponiveis dinamicamente (apenas confirmadas)
+    const aulaAtualizadaFormatada = {
+        ...aulaAtualizada,
+        data: aulaAtualizada.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
+        criadaEm: aulaAtualizada.createdAt?.toISOString() || new Date().toISOString(),
+        atualizadaEm: aulaAtualizada.updatedAt?.toISOString() || new Date().toISOString(),
+        vagasDisponiveis: aulaAtualizada.vagas - aulaAtualizada._count.inscricoes,
+    };
+    res.json({
+        sucesso: true,
+        mensagem: 'Aula atualizada com sucesso',
+        dados: aulaAtualizadaFormatada,
+    });
+});
+export const deletarAula = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const aula = await prisma.aula.findUnique({
+        where: { id },
+    });
+    if (!aula) {
+        throw new AppError(404, 'Aula não encontrada');
+    }
+    // Admins podem deletar qualquer aula; professores apenas suas próprias
+    if (!req.usuario.isAdmin && aula.professor_id !== req.usuario.id) {
+        throw new AppError(403, 'Você não tem permissão para deletar esta aula');
+    }
+    await prisma.aula.delete({
+        where: { id },
+    });
+    res.json({
+        sucesso: true,
+        mensagem: 'Aula deletada com sucesso',
+    });
+});
+export const obterAulasProfessor = asyncHandler(async (req, res) => {
+    // Se for admin, retorna todas as aulas; caso contrário, apenas as do professor
+    const whereClause = req.usuario.isAdmin ? {} : { professor_id: req.usuario.id };
+    const aulas = await prisma.aula.findMany({
+        where: whereClause,
+        include: {
+            professor: {
+                select: { id: true, nome: true, email: true },
+            },
+            // SÓ conta inscrições CONFIRMADAS para vagas
+            _count: {
+                select: {
+                    inscricoes: {
+                        where: { status: 'confirmada' }
+                    }
+                }
+            },
+        },
+        orderBy: { data: 'asc' },
+    });
+    // Transformar os dados para o formato esperado pelo frontend
+    // Calcular vagasDisponiveis dinamicamente (apenas confirmadas)
+    const aulasFormatadas = aulas.map(aula => ({
+        ...aula,
+        data: aula.data.toISOString().split('T')[0], // Converter para YYYY-MM-DD
+        criadaEm: aula.createdAt?.toISOString() || new Date().toISOString(),
+        atualizadaEm: aula.updatedAt?.toISOString() || new Date().toISOString(),
+        vagasDisponiveis: aula.vagas - aula._count.inscricoes,
+    }));
+    res.json({
+        sucesso: true,
+        mensagem: 'Aulas do professor obtidas com sucesso',
+        dados: aulasFormatadas,
+    });
+});
+/**
+ * Notificar todos os alunos sobre uma nova aula disponível
+ * POST /api/aulas/:aulaId/notificar
+ */
+export const notificarAlunosSobreNovaAula = asyncHandler(async (req, res) => {
+    const { aulaId } = req.params;
+    if (!aulaId) {
+        throw new AppError(400, 'ID da aula é obrigatório');
+    }
+    // Buscar aula
+    const aula = await prisma.aula.findUnique({
+        where: { id: aulaId },
+    });
+    if (!aula) {
+        throw new AppError(404, 'Aula não encontrada');
+    }
+    // Buscar todos os alunos (usuários que não são admin)
+    const alunos = await prisma.usuario.findMany({
+        where: {
+            isAdmin: false,
+        },
+    });
+    console.log(`📧 Notificando ${alunos.length} alunos sobre nova aula: ${aula.titulo}`);
+    let emailsEnviados = 0;
+    for (const aluno of alunos) {
+        if (!aluno.email)
+            continue;
+        const dataFormatada = new Date(aula.data).toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+        const assunto = `[FutevoleiPro] 🆕 Nova Aula Disponível: ${aula.titulo}`;
+        const html = emailNovaAulaDisponivel(aluno.nome, aula.titulo, dataFormatada, aula.horario, aula.local, aula.descricao || '', aula.preco);
+        const enviado = await enviarEmail({
+            para: aluno.email,
+            assunto,
+            html,
+        });
+        if (enviado)
+            emailsEnviados++;
+    }
+    res.json({
+        sucesso: true,
+        mensagem: `Notificação enviada para ${emailsEnviados} alunos`,
+        dados: {
+            aulaId,
+            aulaTitulo: aula.titulo,
+            totalAlunos: alunos.length,
+            emailsEnviados,
+        },
+    });
+});
+/**
+ * Cancelar aula e notificar todos os alunos inscritos
+ * PUT /api/aulas/:aulaId/cancelar
+ */
+export const cancelarAulaComNotificacao = asyncHandler(async (req, res) => {
+    const { aulaId } = req.params;
+    const { motivo = 'Motivos não previstos' } = req.body;
+    if (!aulaId) {
+        throw new AppError(400, 'ID da aula é obrigatório');
+    }
+    // Buscar aula
+    const aula = await prisma.aula.findUnique({
+        where: { id: aulaId },
+        include: {
+            inscricoes: {
+                include: {
+                    aluno: true,
+                },
+            },
+        },
+    });
+    if (!aula) {
+        throw new AppError(404, 'Aula não encontrada');
+    }
+    // Verificar se é professor da aula
+    if (aula.professor_id !== req.usuario.id && !req.usuario.isAdmin) {
+        throw new AppError(403, 'Você não tem permissão para cancelar esta aula');
+    }
+    // Atualizar status da aula
+    const aulaAtualizada = await prisma.aula.update({
+        where: { id: aulaId },
+        data: {
+            status: 'cancelada',
+        },
+    });
+    console.log(`❌ Aula cancelada: ${aula.titulo}`);
+    console.log(`📧 Notificando ${aula.inscricoes.length} alunos inscritos`);
+    const dataFormatada = new Date(aula.data).toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+    // Notificar todos os alunos inscritos via EMAIL
+    let emailsEnviados = 0;
+    for (const inscricao of aula.inscricoes) {
+        if (!inscricao.aluno?.email)
+            continue;
+        const assunto = `[FutevoleiPro] ❌ Aula Cancelada: ${aula.titulo}`;
+        const html = emailAulaCancelada(inscricao.aluno.nome, aula.titulo, dataFormatada, aula.horario, motivo);
+        const enviado = await enviarEmail({
+            para: inscricao.aluno.email,
+            assunto,
+            html,
+        });
+        if (enviado)
+            emailsEnviados++;
+    }
+    res.json({
+        sucesso: true,
+        mensagem: `Aula cancelada. ${emailsEnviados} emails enviados`,
+        dados: {
+            aula: aulaAtualizada,
+            totalAlunosNotificados: emailsEnviados,
+        },
+    });
+});
+// Listar inscritos de uma aula (admin)
+export const listarInscritosAula = asyncHandler(async (req, res) => {
+    const { aulaId } = req.params;
+    if (!aulaId) {
+        throw new AppError(400, 'ID da aula é obrigatório');
+    }
+    const aula = await prisma.aula.findUnique({
+        where: { id: aulaId },
+        include: {
+            inscricoes: {
+                include: {
+                    aluno: {
+                        select: {
+                            id: true,
+                            nome: true,
+                            email: true,
+                            telefone: true,
+                        },
+                    },
+                    pagamento: {
+                        select: {
+                            id: true,
+                            valor: true,
+                            metodo: true,
+                            status: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+    if (!aula) {
+        throw new AppError(404, 'Aula não encontrada');
+    }
+    // Verificar se é admin ou professor da aula
+    if (aula.professor_id !== req.usuario.id && !req.usuario.isAdmin) {
+        throw new AppError(403, 'Você não tem permissão para ver os inscritos desta aula');
+    }
+    const inscritos = aula.inscricoes.map(inscricao => ({
+        id: inscricao.id,
+        status: inscricao.status,
+        aluno: inscricao.aluno,
+        nomeManual: inscricao.nomeManual,
+        observacao: inscricao.observacao,
+        pagamento: inscricao.pagamento,
+        createdAt: inscricao.createdAt,
+    }));
+    res.json({
+        sucesso: true,
+        mensagem: `${inscritos.length} inscritos encontrados`,
+        dados: {
+            aula: {
+                id: aula.id,
+                titulo: aula.titulo,
+                data: aula.data.toISOString().split('T')[0],
+                horario: aula.horario,
+            },
+            inscritos,
+        },
+    });
+});
+//# sourceMappingURL=aulaController.js.map
