@@ -212,6 +212,7 @@ export default function App() {
         <LoginPage 
           onLogin={handleLogin}
           onGoToRegister={() => setCurrentPage('register')}
+          onEsqueciSenha={() => setCurrentPage('esqueci-senha')}
         />
       ) : currentPage === 'register' ? (
         <RegisterPage 

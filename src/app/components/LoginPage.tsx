@@ -10,9 +10,10 @@ import { toast } from 'sonner';
 interface LoginPageProps {
   onLogin: (userName: string) => void;
   onGoToRegister: () => void;
+  onEsqueciSenha: () => void;
 }
 
-export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
+export function LoginPage({ onLogin, onGoToRegister, onEsqueciSenha }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,22 +22,8 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [contatoAdmin, setContatoAdmin] = useState<{ nome: string; telefone: string } | null>(null);
   const [carregandoContato, setCarregandoContato] = useState(false);
 
-  const handleEsqueciSenha = async () => {
-    setCarregandoContato(true);
-    try {
-      const response = await api.obterContatoAdmin();
-      if (response.sucesso && response.dados) {
-        setContatoAdmin(response.dados as { nome: string; telefone: string });
-        setMostrarContatoDialog(true);
-      } else {
-        toast.error('Erro ao carregar contato');
-      }
-    } catch (error) {
-      console.error('Erro ao carregar contato:', error);
-      toast.error('Erro ao carregar contato');
-    } finally {
-      setCarregandoContato(false);
-    }
+  const handleEsqueciSenha = () => {
+    onEsqueciSenha();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
