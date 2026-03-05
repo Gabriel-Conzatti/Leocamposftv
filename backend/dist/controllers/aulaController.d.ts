@@ -16,4 +16,5 @@ export declare const notificarAlunosSobreNovaAula: (req: Request, res: Response,
  */
 export declare const cancelarAulaComNotificacao: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const listarInscritosAula: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const confirmarAula: (req: Request, res: Response, next: import("express").NextFunction) => void;
 //# sourceMappingURL=aulaController.d.ts.map

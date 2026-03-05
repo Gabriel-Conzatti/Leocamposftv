@@ -345,6 +345,80 @@ export const emailAulaCancelada = (
 };
 
 /**
+ * Template: Aula Confirmada (enviado pelo professor)
+ */
+export const emailAulaConfirmada = (
+  nomeAluno: string,
+  nomeAula: string,
+  dataAula: string,
+  horarioAula: string,
+  localAula: string,
+  professorNome: string,
+  observacoes: string = ''
+): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .aula-info { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #00b894; border-radius: 4px; }
+          .aula-info div { margin: 10px 0; }
+          .label { font-weight: bold; color: #00b894; }
+          .destaque { background: #d4edda; padding: 15px; border-radius: 4px; margin: 15px 0; text-align: center; }
+          .observacoes { background: #fff3cd; padding: 15px; border-radius: 4px; margin: 15px 0; font-style: italic; }
+          .button { background: #00b894; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 20px; }
+          .footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Aula Confirmada!</h1>
+          </div>
+          <div class="content">
+            <p>Olá <strong>${nomeAluno}</strong>,</p>
+            
+            <div class="destaque">
+              <strong>🎉 Sua aula está CONFIRMADA!</strong>
+            </div>
+            
+            <p>O professor <strong>${professorNome}</strong> confirmou a realização da aula. Veja os detalhes:</p>
+            
+            <div class="aula-info">
+              <div><span class="label">📚 Aula:</span> ${nomeAula}</div>
+              <div><span class="label">📅 Data:</span> ${dataAula}</div>
+              <div><span class="label">⏰ Horário:</span> ${horarioAula}</div>
+              <div><span class="label">📍 Local:</span> ${localAula}</div>
+              <div><span class="label">👨‍🏫 Professor:</span> ${professorNome}</div>
+            </div>
+            
+            ${observacoes ? `
+            <div class="observacoes">
+              <strong>📝 Observações do professor:</strong><br>
+              ${observacoes}
+            </div>
+            ` : ''}
+            
+            <p><strong>⚠️ Lembrete importante:</strong> Chegue 10 minutos antes do horário!</p>
+            
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" class="button">Ver minha conta</a>
+            
+            <div class="footer">
+              <p>FutevoleiPro © 2026 | Todos os direitos reservados</p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+/**
  * Template: Confirmação de Inscrição (Alerta Genérico)
  */
 export const emailAvisoAgendamento = (

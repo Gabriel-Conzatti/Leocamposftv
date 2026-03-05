@@ -9,6 +9,7 @@ import {
   notificarAlunosSobreNovaAula,
   cancelarAulaComNotificacao,
   listarInscritosAula,
+  confirmarAula,
 } from '../controllers/aulaController.js';
 import {
   autenticacao,
@@ -27,6 +28,7 @@ router.delete('/:id', autenticacao, verificarAdmin, deletarAula);
 // Notificações (rotas especiais com admin)
 router.post('/:aulaId/notificar', autenticacao, verificarAdmin, notificarAlunosSobreNovaAula);
 router.put('/:aulaId/cancelar', autenticacao, verificarAdmin, cancelarAulaComNotificacao);
+router.put('/:aulaId/confirmar', autenticacao, verificarAdmin, confirmarAula);
 // Listar inscritos de uma aula
 router.get('/:aulaId/inscritos', autenticacao, verificarAdmin, listarInscritosAula);
 

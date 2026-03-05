@@ -220,6 +220,15 @@ class APIService {
     }
   }
 
+  async confirmarAula(aulaId: string, observacoes?: string) {
+    try {
+      const response = await this.api.put<APIResponse>(`/aulas/${aulaId}/confirmar`, { observacoes });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // ===== INSCRIÇÕES =====
   async inscreverAula(aulaId: string) {
     try {

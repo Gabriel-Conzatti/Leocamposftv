@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Users, DollarSign, Plus, LogOut, Trash2, Filter, RefreshCw, Pencil, Calendar, Clock, Eye, Mail, Phone } from 'lucide-react';
+import { MapPin, Users, DollarSign, Plus, LogOut, Trash2, Filter, RefreshCw, Pencil, Calendar, Clock, Eye, Mail, Phone, CheckCircle, Send } from 'lucide-react';
 import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -50,6 +50,7 @@ export function ProfessorDashboard({
   const [salvandoInscrito, setSalvandoInscrito] = useState(false);
   const [inscricaoParaRemover, setInscricaoParaRemover] = useState<any>(null);
   const [removendoInscrito, setRemovendoInscrito] = useState(false);
+  const [confirmandoAula, setConfirmandoAula] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
@@ -177,6 +178,24 @@ export function ProfessorDashboard({
       setInscritosAula([]);
     } finally {
       setLoadingInscritos(false);
+    }
+  };
+
+  const handleConfirmarAula = async (aulaId: string) => {
+    setConfirmandoAula(aulaId);
+    try {
+      const response = await api.confirmarAula(aulaId);
+      if (response.sucesso) {
+        toast.success(response.mensagem || 'Aula confirmada! Emails enviados aos alunos.');
+        if (onRefresh) await onRefresh();
+      } else {
+        toast.error(response.mensagem || 'Erro ao confirmar aula');
+      }
+    } catch (error: any) {
+      console.error('Erro ao confirmar aula:', error);
+      toast.error(error?.mensagem || 'Erro ao confirmar aula');
+    } finally {
+      setConfirmandoAula(null);
     }
   };
 
@@ -672,6 +691,21 @@ export function ProfessorDashboard({
                                   >
                                     <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
                                     <span className="hidden sm:inline">Inscritos</span>
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="text-green-600 border-green-600 hover:bg-green-50 h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm"
+                                    onClick={() => handleConfirmarAula(aula.id)}
+                                    disabled={confirmandoAula === aula.id}
+                                    title="Confirmar aula e enviar emails"
+                                  >
+                                    {confirmandoAula === aula.id ? (
+                                      <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1 animate-spin" />
+                                    ) : (
+                                      <Send className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
+                                    )}
+                                    <span className="hidden sm:inline">{confirmandoAula === aula.id ? 'Enviando...' : 'Confirmar'}</span>
                                   </Button>
                                   <Button 
                                     variant="outline" 

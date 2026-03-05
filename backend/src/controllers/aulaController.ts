@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler, AppError } from '../utils/errors.js';
 import { validar, criarAulaSchema } from '../utils/validacoes.js';
 import prisma from '../lib/prisma.js';
-import { enviarEmail, emailNovaAulaDisponivel, emailAulaCancelada } from '../services/emailService.js';
+import { enviarEmail, emailNovaAulaDisponivel, emailAulaCancelada, emailAulaConfirmada } from '../services/emailService.js';
 
 export const listarAulas = asyncHandler(async (req: Request, res: Response) => {
   const aulas = await prisma.aula.findMany({
@@ -581,6 +581,91 @@ export const listarInscritosAula = asyncHandler(async (req: Request, res: Respon
         horario: aula.horario,
       },
       inscritos,
+    },
+  });
+});
+
+// Confirmar aula e enviar email para todos os inscritos (admin)
+export const confirmarAula = asyncHandler(async (req: Request, res: Response) => {
+  const { aulaId } = req.params;
+  const { observacoes } = req.body;
+
+  if (!aulaId) {
+    throw new AppError(400, 'ID da aula é obrigatório');
+  }
+
+  const aula = await prisma.aula.findUnique({
+    where: { id: aulaId },
+    include: {
+      professor: {
+        select: { nome: true },
+      },
+      inscricoes: {
+        where: { status: 'confirmada' }, // Apenas inscrições confirmadas/pagas
+        include: {
+          aluno: {
+            select: { nome: true, email: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!aula) {
+    throw new AppError(404, 'Aula não encontrada');
+  }
+
+  if (aula.status === 'cancelada') {
+    throw new AppError(400, 'Não é possível confirmar uma aula cancelada');
+  }
+
+  // Atualizar status da aula para 'confirmada'
+  const aulaAtualizada = await prisma.aula.update({
+    where: { id: aulaId },
+    data: { status: 'confirmada' },
+  });
+
+  // Formatar data para exibição
+  const dataObj = new Date(aula.data);
+  const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  // Enviar email para todos os alunos inscritos
+  let emailsEnviados = 0;
+  for (const inscricao of aula.inscricoes) {
+    if (!inscricao.aluno?.email) continue;
+
+    const assunto = `[FutevoleiPro] ✅ Aula Confirmada: ${aula.titulo}`;
+    const html = emailAulaConfirmada(
+      inscricao.aluno.nome,
+      aula.titulo,
+      dataFormatada,
+      aula.horario,
+      aula.local,
+      aula.professor?.nome || 'Professor',
+      observacoes || ''
+    );
+
+    const enviado = await enviarEmail({
+      para: inscricao.aluno.email,
+      assunto,
+      html,
+    });
+
+    if (enviado) emailsEnviados++;
+  }
+
+  res.json({
+    sucesso: true,
+    mensagem: `Aula confirmada! ${emailsEnviados} emails enviados para os alunos.`,
+    dados: {
+      aula: aulaAtualizada,
+      totalAlunosNotificados: emailsEnviados,
+      totalInscritos: aula.inscricoes.length,
     },
   });
 });

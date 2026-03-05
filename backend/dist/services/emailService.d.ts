@@ -28,6 +28,10 @@ export declare const emailLembreteAula: (nomeAluno: string, nomeAula: string, da
  */
 export declare const emailAulaCancelada: (nomeAluno: string, nomeAula: string, dataAula: string, horarioAula: string, motivo?: string) => string;
 /**
+ * Template: Aula Confirmada (enviado pelo professor)
+ */
+export declare const emailAulaConfirmada: (nomeAluno: string, nomeAula: string, dataAula: string, horarioAula: string, localAula: string, professorNome: string, observacoes?: string) => string;
+/**
  * Template: Confirmação de Inscrição (Alerta Genérico)
  */
 export declare const emailAvisoAgendamento: (nomeAluno: string, nomeAula: string, dataAula: string, horarioAula: string) => string;
