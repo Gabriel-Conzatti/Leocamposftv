@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postinstall": "cd backend && npm install --production"
+    "postinstall": "cd backend && npm install --production && npx prisma generate"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.1.6",
