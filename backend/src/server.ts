@@ -37,7 +37,8 @@ const corsOptions = {
       origin.includes('localhost') ||
       origin.includes('127.0.0.1') ||
       origin.includes('.onrender.com') ||
-      origin.includes('.vercel.app')
+      origin.includes('.vercel.app') ||
+      origin.includes('leocamposftv.com')
     ) {
       return callback(null, true);
     }
