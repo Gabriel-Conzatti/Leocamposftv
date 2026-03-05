@@ -118,8 +118,22 @@ export const criarAula = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError(400, 'Data inválida');
   }
 
-  // Obter data/hora atual em Brasília (UTC-3)
-  const agoraBrasilia = new Date(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+  // Obter data/hora atual em Brasília (UTC-3) de forma robusta
+  const agora = new Date();
+  const formatter = new Intl.DateTimeFormat('pt-BR', { 
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const partes = formatter.formatToParts(agora);
+  const diaHojeBrasilia = partes.find(p => p.type === 'day')?.value || '01';
+  const mesHojeBrasilia = partes.find(p => p.type === 'month')?.value || '01';
+  const anoHojeBrasilia = partes.find(p => p.type === 'year')?.value || '2026';
   
   // Converter data para string se necessário
   const dataStr = typeof value.data === 'string' ? value.data : value.data.toISOString().split('T')[0];
@@ -127,19 +141,15 @@ export const criarAula = asyncHandler(async (req: Request, res: Response) => {
   
   // Criar datas usando valores locais (Brasília)
   const dataAulaLocal = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 0, 0, 0, 0);
-  const dataHojeLocal = new Date(agoraBrasilia.getFullYear(), agoraBrasilia.getMonth(), agoraBrasilia.getDate(), 0, 0, 0, 0);
-  
-  // Formatar data de hoje em Brasília
-  const diaHojeBrasilia = agoraBrasilia.getDate().toString().padStart(2, '0');
-  const mesHojeBrasilia = (agoraBrasilia.getMonth() + 1).toString().padStart(2, '0');
-  const anoHojeBrasilia = agoraBrasilia.getFullYear();
+  const dataHojeLocal = new Date(parseInt(anoHojeBrasilia), parseInt(mesHojeBrasilia) - 1, parseInt(diaHojeBrasilia), 0, 0, 0, 0);
   const dataHojeBrasiliaStr = `${anoHojeBrasilia}-${mesHojeBrasilia}-${diaHojeBrasilia}`;
+  const horaAtualBrasilia = partes.find(p => p.type === 'hour')?.value + ':' + partes.find(p => p.type === 'minute')?.value + ':' + partes.find(p => p.type === 'second')?.value;
   
   console.log('🕐 Verificando data/hora (Fuso Brasília - UTC-3):');
   console.log('   Data da aula: ', value.data);
   console.log('   Hora da aula: ', value.horario);
   console.log('   Data hoje:    ', dataHojeBrasiliaStr);
-  console.log('   Hora atual:   ', agoraBrasilia.toTimeString());
+  console.log('   Hora atual:   ', horaAtualBrasilia);
 
   // Rejeitar apenas se a data estiver no passado
   if (dataAulaLocal < dataHojeLocal) {
