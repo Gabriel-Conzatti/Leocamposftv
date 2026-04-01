@@ -8,7 +8,7 @@ import { api } from '@/services/api';
 import { toast } from 'sonner';
 
 interface LoginPageProps {
-  onLogin: (userName: string) => void;
+  onLogin: (user: { id: string; nome: string; email: string; isAdmin?: boolean }) => void;
   onGoToRegister: () => void;
   onEsqueciSenha: () => void;
 }
@@ -28,20 +28,27 @@ export function LoginPage({ onLogin, onGoToRegister, onEsqueciSenha }: LoginPage
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const submittedEmail = ((formData.get('email') as string) || email).trim();
+    const submittedPassword = ((formData.get('password') as string) || password).trim();
+
+    // Keep state in sync with browser/password-manager autofill values
+    setEmail(submittedEmail);
+    setPassword(submittedPassword);
+
+    if (!submittedEmail || !submittedPassword) {
       toast.error('Preencha email e senha');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.login(email, password);
+      const response = await api.login(submittedEmail, submittedPassword);
       console.log('Login response:', response);
       
       if (response.sucesso) {
         const userData = (response.dados as any)?.usuario;
         const token = (response.dados as any)?.token;
-        const userName = userData?.nome || email.split('@')[0] || 'Usuário';
         
         console.log('User data from API:', userData);
         
@@ -52,7 +59,7 @@ export function LoginPage({ onLogin, onGoToRegister, onEsqueciSenha }: LoginPage
         console.log('Saved to localStorage:', userData);
         
         toast.success('Login realizado com sucesso!');
-        onLogin(userName);
+        onLogin(userData);
       } else {
         const errorMsg = response.mensagem || 'Email ou senha inválidos';
         console.log('Login error response:', errorMsg);
@@ -103,7 +110,9 @@ export function LoginPage({ onLogin, onGoToRegister, onEsqueciSenha }: LoginPage
               <div className="relative">
                 <Input
                   id="email"
+                  name="email"
                   type="text"
+                  autoComplete="username"
                   placeholder="Digite seu email ou telefone"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -121,7 +130,9 @@ export function LoginPage({ onLogin, onGoToRegister, onEsqueciSenha }: LoginPage
               <div className="relative">
                 <Input
                   id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   placeholder="Digite sua senha"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

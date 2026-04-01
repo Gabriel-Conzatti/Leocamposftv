@@ -80,44 +80,69 @@ export default function App() {
     }
   }, [currentUser, currentPage]);
 
-  // Restaurar usuário do localStorage ao carregar a página
+  // Restaurar sessão validando token/perfil ao carregar a página
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      const userData = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+
+      if (!userData || !token) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        if (isMounted) {
+          setCurrentUser(null);
+          setCurrentPage('login');
+          setIsLoading(false);
+        }
+        return;
+      }
+
       try {
-        const user = JSON.parse(userData);
+        const userLocal = JSON.parse(userData);
+        const response = await api.obterPerfil();
+        const userApi = (response.dados as any)?.usuario;
+        const user = userApi || userLocal;
+
+        if (!isMounted) {
+          return;
+        }
+
         setCurrentUser(user);
         setCurrentPage('dashboard');
+
         if (user.isAdmin) {
-          loadDadosAdmin();
+          await loadDadosAdmin();
         }
       } catch (error) {
         console.error('Erro ao recuperar sessão:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
+        if (isMounted) {
+          setCurrentUser(null);
+          setCurrentPage('login');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-    }
-    setIsLoading(false);
+    };
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleLogin = (userName: string) => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        setCurrentUser(user);
-        setCurrentPage('dashboard');
-        if (user.isAdmin) {
-          loadDadosAdmin();
-        }
-        return;
-      } catch (error) {
-        console.error('Erro ao recuperar usuário do localStorage:', error);
-      }
-    }
-    // Fallback se algo der errado
-    setCurrentUser({ id: `user_${Date.now()}`, nome: userName, email: '' });
+  const handleLogin = (user: Usuario & { isAdmin?: boolean }) => {
+    setCurrentUser(user);
     setCurrentPage('dashboard');
+    if (user.isAdmin) {
+      loadDadosAdmin();
+    }
   };
 
   const handleLogout = () => {
