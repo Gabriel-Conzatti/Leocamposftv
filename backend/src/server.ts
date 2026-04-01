@@ -18,6 +18,8 @@ const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Lista de origens permitidas
     const allowedOrigins = [
+      'https://leocamposftv.com',
+      'https://www.leocamposftv.com',
       'http://localhost:5173',
       'http://localhost:3000',
       'http://127.0.0.1:5173',
@@ -37,7 +39,8 @@ const corsOptions = {
       origin.includes('127.0.0.1') ||
       origin.includes('.onrender.com') ||
       origin.includes('.vercel.app') ||
-      origin.includes('leocamposftv.com')
+      origin.includes('leocamposftv.com') ||
+      origin === 'https://api.leocamposftv.com'
     ) {
       return callback(null, true);
     }
@@ -51,6 +54,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Health check com status do banco
 app.get('/api/health', async (req: Request, res: Response) => {

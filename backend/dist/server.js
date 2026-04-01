@@ -14,6 +14,8 @@ const corsOptions = {
     origin: (origin, callback) => {
         // Lista de origens permitidas
         const allowedOrigins = [
+            'https://leocamposftv.com',
+            'https://www.leocamposftv.com',
             'http://localhost:5173',
             'http://localhost:3000',
             'http://127.0.0.1:5173',
@@ -30,7 +32,8 @@ const corsOptions = {
             origin.includes('127.0.0.1') ||
             origin.includes('.onrender.com') ||
             origin.includes('.vercel.app') ||
-            origin.includes('leocamposftv.com')) {
+            origin.includes('leocamposftv.com') ||
+            origin === 'https://api.leocamposftv.com') {
             return callback(null, true);
         }
         callback(new Error('Not allowed by CORS'));
@@ -41,6 +44,7 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 // Health check com status do banco
 app.get('/api/health', async (req, res) => {
     try {
