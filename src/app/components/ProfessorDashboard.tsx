@@ -51,6 +51,7 @@ export function ProfessorDashboard({
   const [inscricaoParaRemover, setInscricaoParaRemover] = useState<any>(null);
   const [removendoInscrito, setRemovendoInscrito] = useState(false);
   const [confirmandoAula, setConfirmandoAula] = useState<string | null>(null);
+  const [deletandoAula, setDeletandoAula] = useState<string | null>(null);
   const [modoInscricao, setModoInscricao] = useState<'manual' | 'existente'>('manual');
   const [usuariosDisponiveis, setUsuariosDisponiveis] = useState<any[]>([]);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<string>('');
@@ -200,6 +201,19 @@ export function ProfessorDashboard({
       toast.error(error?.mensagem || 'Erro ao confirmar aula');
     } finally {
       setConfirmandoAula(null);
+    }
+  };
+
+  const handleExcluirAula = async (aulaId: string, titulo: string) => {
+    const confirmar = window.confirm(`Tem certeza que deseja excluir a aula \"${titulo}\"?`);
+    if (!confirmar) return;
+
+    setDeletandoAula(aulaId);
+    try {
+      await onDeleteAula(aulaId);
+      if (onRefresh) await onRefresh();
+    } finally {
+      setDeletandoAula(null);
     }
   };
 
@@ -749,11 +763,16 @@ export function ProfessorDashboard({
                                     variant="outline" 
                                     size="sm"
                                     className="text-red-500 border-red-500 hover:bg-red-50 h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm"
-                                    onClick={() => onDeleteAula(aula.id)}
+                                    onClick={() => handleExcluirAula(aula.id, aula.titulo)}
+                                    disabled={deletandoAula === aula.id}
                                     title="Excluir aula"
                                   >
-                                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
-                                    <span className="hidden sm:inline">Excluir</span>
+                                    {deletandoAula === aula.id ? (
+                                      <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
+                                    )}
+                                    <span className="hidden sm:inline">{deletandoAula === aula.id ? 'Excluindo...' : 'Excluir'}</span>
                                   </Button>
                                 </div>
                               </div>

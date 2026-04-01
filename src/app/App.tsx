@@ -187,9 +187,10 @@ export default function App() {
       // Recarregar as aulas e inscrições para garantir sincronização
       await loadDadosAdmin();
       toast.success('Aula deletada com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao deletar aula:', error);
-      toast.error('Erro ao deletar aula');
+      const mensagemErro = error?.response?.data?.mensagem || error?.message || 'Erro ao deletar aula';
+      toast.error(mensagemErro);
     }
   };
 
