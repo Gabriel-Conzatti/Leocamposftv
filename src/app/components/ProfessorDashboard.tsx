@@ -204,7 +204,7 @@ export function ProfessorDashboard({
     }
   };
 
-  const handleExcluirAula = async (aulaId: string, titulo: string) => {
+  const handleDeleteAula = async (aulaId: string, titulo: string) => {
     const confirmar = window.confirm(`Tem certeza que deseja excluir a aula \"${titulo}\"?`);
     if (!confirmar) return;
 
@@ -216,6 +216,8 @@ export function ProfessorDashboard({
       setDeletandoAula(null);
     }
   };
+
+  const handleExcluirAula = handleDeleteAula;
 
   const handleAdicionarInscrito = async () => {
     if (modoInscricao === 'manual' && !novoInscrito.nome) {
