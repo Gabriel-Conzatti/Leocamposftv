@@ -749,7 +749,7 @@ export function ProfessorDashboard({
                                     variant="outline" 
                                     size="sm"
                                     className="text-red-500 border-red-500 hover:bg-red-50 h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm"
-                                    onClick={() => handleDeleteAula(aula.id)}
+                                    onClick={() => onDeleteAula(aula.id)}
                                     title="Excluir aula"
                                   >
                                     <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
