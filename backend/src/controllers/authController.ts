@@ -4,6 +4,7 @@ import { gerarToken, verificarToken } from '../utils/jwt.js';
 import { hashSenha, compararSenha } from '../utils/bcrypt.js';
 import { validar, registroSchema, loginSchema } from '../utils/validacoes.js';
 import prisma, { getPrismaClient, resetPrismaClient } from '../lib/prisma.js';
+import { buscarUsuarioLogin } from '../lib/mysql.js';
 import { enviarEmail, emailRecuperacaoSenha, emailSenhaAlterada } from '../services/emailService.js';
 import jwt from 'jsonwebtoken';
 
@@ -93,30 +94,31 @@ export const loginController = asyncHandler(
     const isEmail = value.email.includes('@');
     const telefoneFormatado = value.email.replace(/\D/g, ''); // Remove caracteres não numéricos
 
-    const whereClause = isEmail
-      ? { email: value.email }
-      : { telefone: telefoneFormatado };
-
-    const buscarUsuario = async () => {
+    const buscarUsuarioPrisma = async () => {
       return getPrismaClient().usuario.findFirst({
-        where: whereClause,
+        where: isEmail
+          ? { email: value.email }
+          : { telefone: telefoneFormatado },
       });
     };
 
-    // Buscar usuário no banco e, se o engine do Prisma panicar, recriar o client e tentar mais uma vez
     let usuario;
     try {
-      usuario = await buscarUsuario();
+      usuario = await buscarUsuarioPrisma();
     } catch (error: any) {
       const mensagem = String(error?.message || error || '');
       const nomeErro = error?.name || '';
 
-      if (nomeErro === 'PrismaClientRustPanicError' || mensagem.includes('timer has gone away')) {
+      if (nomeErro === 'PrismaClientRustPanicError' || nomeErro === 'PrismaClientInitializationError' || mensagem.includes('timer has gone away')) {
         await resetPrismaClient();
-        usuario = await buscarUsuario();
+        usuario = await buscarUsuarioLogin(value.email);
       } else {
         throw error;
       }
+    }
+
+    if (!usuario) {
+      usuario = await buscarUsuarioLogin(value.email);
     }
 
     if (!usuario) {
