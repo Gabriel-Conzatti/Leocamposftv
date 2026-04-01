@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-import prisma from './lib/prisma.js';
 import authRoutes from './routes/authRoutes.js';
 import aulaRoutes from './routes/aulaRoutes.js';
 import inscricaoRoutes from './routes/inscricaoRoutes.js';
@@ -45,26 +44,21 @@ app.use(cors(corsOptions));
 // Health check com status do banco
 app.get('/api/health', async (req, res) => {
     try {
-        console.log('🔍 Tentando conectar ao banco...');
-        console.log('🔍 DATABASE_URL:', process.env.DATABASE_URL?.substring(0, 50) + '...');
-        await prisma.$queryRaw `SELECT 1`;
-        console.log('✅ Conexão com banco OK');
         res.json({
             sucesso: true,
-            mensagem: 'Servidor funcionando e conectado ao MySQL',
+            mensagem: 'Servidor funcionando',
             timestamp: new Date().toISOString(),
-            database: 'MySQL ✅',
+            database: 'não verificado',
         });
     }
     catch (error) {
-        console.error('❌ Erro ao conectar ao banco:', error.message);
-        console.error('❌ Erro completo:', error);
+        console.error('❌ Erro no health check:', error.message);
         res.status(500).json({
             sucesso: false,
-            mensagem: 'Erro ao conectar ao banco de dados',
+            mensagem: 'Erro ao verificar health do servidor',
             erro: error.message,
             timestamp: new Date().toISOString(),
-            database: 'MySQL ❌',
+            database: 'indisponível',
         });
     }
 });

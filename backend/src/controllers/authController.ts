@@ -3,7 +3,7 @@ import { asyncHandler, AppError } from '../utils/errors.js';
 import { gerarToken, verificarToken } from '../utils/jwt.js';
 import { hashSenha, compararSenha } from '../utils/bcrypt.js';
 import { validar, registroSchema, loginSchema } from '../utils/validacoes.js';
-import prisma from '../lib/prisma.js';
+import prisma, { getPrismaClient, resetPrismaClient } from '../lib/prisma.js';
 import { enviarEmail, emailRecuperacaoSenha, emailSenhaAlterada } from '../services/emailService.js';
 import jwt from 'jsonwebtoken';
 
@@ -93,12 +93,31 @@ export const loginController = asyncHandler(
     const isEmail = value.email.includes('@');
     const telefoneFormatado = value.email.replace(/\D/g, ''); // Remove caracteres não numéricos
 
-    // Buscar usuário no banco por email ou telefone
-    const usuario = await prisma.usuario.findFirst({
-      where: isEmail 
-        ? { email: value.email }
-        : { telefone: telefoneFormatado },
-    });
+    const whereClause = isEmail
+      ? { email: value.email }
+      : { telefone: telefoneFormatado };
+
+    const buscarUsuario = async () => {
+      return getPrismaClient().usuario.findFirst({
+        where: whereClause,
+      });
+    };
+
+    // Buscar usuário no banco e, se o engine do Prisma panicar, recriar o client e tentar mais uma vez
+    let usuario;
+    try {
+      usuario = await buscarUsuario();
+    } catch (error: any) {
+      const mensagem = String(error?.message || error || '');
+      const nomeErro = error?.name || '';
+
+      if (nomeErro === 'PrismaClientRustPanicError' || mensagem.includes('timer has gone away')) {
+        await resetPrismaClient();
+        usuario = await buscarUsuario();
+      } else {
+        throw error;
+      }
+    }
 
     if (!usuario) {
       throw new AppError(401, 'Credenciais inválidas');
