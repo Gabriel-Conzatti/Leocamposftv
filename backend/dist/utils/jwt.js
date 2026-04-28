@@ -1,14 +1,9 @@
 import jwt from 'jsonwebtoken';
-// IMPORTANTE: JWT_SECRET DEVE ser definido via variável de ambiente
-// NUNCA use um fallback em produção
+// IMPORTANTE: JWT_SECRET DEVE ser definido via variável de ambiente.
+// Não derrubamos o processo no boot para manter a API observável (health/logs).
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-    console.error('\u274c ERRO CR\u00cdTICO: JWT_SECRET n\u00e3o configurado!');
-    console.error('Configure a vari\u00e1vel de ambiente JWT_SECRET antes de iniciar o servidor.');
-    // Em produ\u00e7\u00e3o, isso impede o servidor de iniciar sem configura\u00e7\u00e3o adequada
-    if (process.env.NODE_ENV === 'production') {
-        process.exit(1);
-    }
+    console.error('ERRO CRITICO: JWT_SECRET nao configurado. Endpoints que usam JWT vao falhar ate configurar a variavel.');
 }
 export const gerarToken = (payload) => {
     if (!JWT_SECRET) {
