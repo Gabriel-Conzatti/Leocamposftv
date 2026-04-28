@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Users, DollarSign, Plus, LogOut, Trash2, Filter, RefreshCw, Pencil, Calendar, Clock, Eye, Mail, Phone, CheckCircle, Send } from 'lucide-react';
+import { MapPin, Users, DollarSign, Plus, LogOut, Trash2, Filter, RefreshCw, Pencil, Calendar, Clock, Eye, Mail, Phone, CheckCircle, Send, Search, UserCheck } from 'lucide-react';
 import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,6 +56,9 @@ export function ProfessorDashboard({
   const [usuariosDisponiveis, setUsuariosDisponiveis] = useState<any[]>([]);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<string>('');
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(false);
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const [buscaCliente, setBuscaCliente] = useState('');
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
@@ -276,6 +279,22 @@ export function ProfessorDashboard({
   const handleAbrirFormInscricao = () => {
     setMostrarFormNovoInscrito(true);
     carregarUsuarios();
+  };
+
+  const handleCarregarClientes = async () => {
+    if (clientes.length > 0) return; // já carregado
+    setLoadingClientes(true);
+    try {
+      const response = await api.listarUsuarios();
+      if (response.sucesso && response.dados) {
+        setClientes(response.dados as any[]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar clientes:', error);
+      toast.error('Erro ao carregar lista de clientes');
+    } finally {
+      setLoadingClientes(false);
+    }
   };
 
   const handleRemoverInscrito = async (removerPagamento: boolean) => {
@@ -648,7 +667,7 @@ export function ProfessorDashboard({
               </div>
 
               <Tabs defaultValue="proximas" className="space-y-3 sm:space-y-4">
-                <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+                <TabsList className="grid w-full grid-cols-3 h-auto p-1">
                   <TabsTrigger value="proximas" className="text-xs sm:text-sm py-2 px-1 sm:px-4">
                     <span className="hidden sm:inline">Próximas Aulas</span>
                     <span className="sm:hidden">Próximas</span>
@@ -656,6 +675,14 @@ export function ProfessorDashboard({
                   <TabsTrigger value="historico" className="text-xs sm:text-sm py-2 px-1 sm:px-4">
                     <span className="hidden sm:inline">Histórico</span>
                     <span className="sm:hidden">Histórico</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="clientes"
+                    className="text-xs sm:text-sm py-2 px-1 sm:px-4"
+                    onClick={handleCarregarClientes}
+                  >
+                    <span className="hidden sm:inline">Clientes</span>
+                    <span className="sm:hidden">Clientes</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -850,6 +877,86 @@ export function ProfessorDashboard({
                           </Card>
                         );
                       })
+                    );
+                  })()}
+                </TabsContent>
+
+                {/* Aba de Clientes */}
+                <TabsContent value="clientes" className="space-y-3 sm:space-y-4">
+                  {/* Barra de busca */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por nome, e-mail ou telefone..."
+                      value={buscaCliente}
+                      onChange={(e) => setBuscaCliente(e.target.value)}
+                      className="w-full h-10 pl-9 pr-4 rounded-md border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0D5A6E]/40"
+                    />
+                  </div>
+
+                  {loadingClientes ? (
+                    <div className="flex justify-center py-10">
+                      <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : clientes.length === 0 ? (
+                    <Card className="bg-white">
+                      <CardContent className="pt-6 text-center">
+                        <UserCheck className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p className="text-gray-500">Nenhum cliente cadastrado</p>
+                      </CardContent>
+                    </Card>
+                  ) : (() => {
+                    const termo = buscaCliente.toLowerCase();
+                    const filtrados = clientes.filter((c: any) =>
+                      (c.nome || '').toLowerCase().includes(termo) ||
+                      (c.email || '').toLowerCase().includes(termo) ||
+                      (c.telefone || '').toLowerCase().includes(termo)
+                    );
+                    return filtrados.length === 0 ? (
+                      <Card className="bg-white">
+                        <CardContent className="pt-6 text-center">
+                          <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p className="text-gray-500">Nenhum cliente encontrado para "{buscaCliente}"</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <>
+                        <p className="text-xs text-gray-500 text-right">
+                          {filtrados.length} {filtrados.length === 1 ? 'cliente' : 'clientes'}
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {filtrados.map((cliente: any) => (
+                            <Card key={cliente.id} className="bg-white hover:shadow-md transition-shadow">
+                              <CardContent className="pt-4 pb-4 px-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: '#0D5A6E' }}>
+                                    {(cliente.nome || '?').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0 space-y-1">
+                                    <p className="font-semibold text-gray-900 truncate">{cliente.nome || 'Sem nome'}</p>
+                                    {cliente.email && (
+                                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                                        <Mail className="w-3 h-3 flex-shrink-0" />
+                                        <span className="truncate">{cliente.email}</span>
+                                      </div>
+                                    )}
+                                    {cliente.telefone && (
+                                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                                        <Phone className="w-3 h-3 flex-shrink-0" />
+                                        <span>{cliente.telefone}</span>
+                                      </div>
+                                    )}
+                                    {!cliente.telefone && !cliente.email && (
+                                      <p className="text-xs text-gray-400 italic">Sem contato cadastrado</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </>
                     );
                   })()}
                 </TabsContent>
