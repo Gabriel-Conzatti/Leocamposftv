@@ -111,25 +111,14 @@ export const loginController = asyncHandler(
 
       if (nomeErro === 'PrismaClientRustPanicError' || nomeErro === 'PrismaClientInitializationError' || mensagem.includes('timer has gone away')) {
         await resetPrismaClient();
-        try {
-          usuario = await buscarUsuarioLogin(value.email);
-        } catch (mysqlError: any) {
-          console.error('Erro ao consultar usuário no MySQL fallback:', mysqlError?.message || mysqlError);
-          throw new AppError(503, 'Banco de dados indisponível no momento');
-        }
+        usuario = await buscarUsuarioLogin(value.email);
       } else {
-        console.error('Erro ao consultar usuário no Prisma:', error?.message || error);
         throw error;
       }
     }
 
     if (!usuario) {
-      try {
-        usuario = await buscarUsuarioLogin(value.email);
-      } catch (mysqlError: any) {
-        console.error('Erro ao consultar usuário no MySQL:', mysqlError?.message || mysqlError);
-        throw new AppError(503, 'Banco de dados indisponível no momento');
-      }
+      usuario = await buscarUsuarioLogin(value.email);
     }
 
     if (!usuario) {
@@ -468,20 +457,14 @@ export const obterPerfil = asyncHandler(
 // Obter contato do admin (Leo Campos) para recuperação de senha
 export const obterContatoAdmin = asyncHandler(
   async (req: Request, res: Response) => {
-    let admin;
-    try {
-      // Buscar o Leo Campos especificamente pelo email
-      admin = await prisma.usuario.findUnique({
-        where: { email: 'leo1907campos@hotmail.com' },
-        select: {
-          nome: true,
-          telefone: true,
-        },
-      });
-    } catch (error: any) {
-      console.error('Erro ao buscar contato admin:', error?.message || error);
-      throw new AppError(503, 'Banco de dados indisponível no momento');
-    }
+    // Buscar o Leo Campos especificamente pelo email
+    const admin = await prisma.usuario.findUnique({
+      where: { email: 'leo1907campos@hotmail.com' },
+      select: {
+        nome: true,
+        telefone: true,
+      },
+    });
 
     if (!admin || !admin.telefone) {
       throw new AppError(404, 'Contato do admin não encontrado');

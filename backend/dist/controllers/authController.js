@@ -3,7 +3,7 @@ import { gerarToken } from '../utils/jwt.js';
 import { hashSenha, compararSenha } from '../utils/bcrypt.js';
 import { validar, registroSchema, loginSchema } from '../utils/validacoes.js';
 import prisma, { getPrismaClient, resetPrismaClient } from '../lib/prisma.js';
-import { buscarUsuarioLogin, listarUsuariosMysql } from '../lib/mysql.js';
+import { buscarUsuarioLogin } from '../lib/mysql.js';
 import { enviarEmail, emailRecuperacaoSenha, emailSenhaAlterada } from '../services/emailService.js';
 import jwt from 'jsonwebtoken';
 export const registroController = asyncHandler(async (req, res) => {
@@ -89,27 +89,14 @@ export const loginController = asyncHandler(async (req, res) => {
         const nomeErro = error?.name || '';
         if (nomeErro === 'PrismaClientRustPanicError' || nomeErro === 'PrismaClientInitializationError' || mensagem.includes('timer has gone away')) {
             await resetPrismaClient();
-            try {
-                usuario = await buscarUsuarioLogin(value.email);
-            }
-            catch (mysqlError) {
-                console.error('Erro ao consultar usuário no MySQL fallback:', mysqlError?.message || mysqlError);
-                throw new AppError(503, 'Banco de dados indisponível no momento');
-            }
+            usuario = await buscarUsuarioLogin(value.email);
         }
         else {
-            console.error('Erro ao consultar usuário no Prisma:', error?.message || error);
             throw error;
         }
     }
     if (!usuario) {
-        try {
-            usuario = await buscarUsuarioLogin(value.email);
-        }
-        catch (mysqlError) {
-            console.error('Erro ao consultar usuário no MySQL:', mysqlError?.message || mysqlError);
-            throw new AppError(503, 'Banco de dados indisponível no momento');
-        }
+        usuario = await buscarUsuarioLogin(value.email);
     }
     if (!usuario) {
         throw new AppError(401, 'Credenciais inválidas');
@@ -377,21 +364,14 @@ export const obterPerfil = asyncHandler(async (req, res) => {
 });
 // Obter contato do admin (Leo Campos) para recuperação de senha
 export const obterContatoAdmin = asyncHandler(async (req, res) => {
-    let admin;
-    try {
-        // Buscar o Leo Campos especificamente pelo email
-        admin = await prisma.usuario.findUnique({
-            where: { email: 'leo1907campos@hotmail.com' },
-            select: {
-                nome: true,
-                telefone: true,
-            },
-        });
-    }
-    catch (error) {
-        console.error('Erro ao buscar contato admin:', error?.message || error);
-        throw new AppError(503, 'Banco de dados indisponível no momento');
-    }
+    // Buscar o Leo Campos especificamente pelo email
+    const admin = await prisma.usuario.findUnique({
+        where: { email: 'leo1907campos@hotmail.com' },
+        select: {
+            nome: true,
+            telefone: true,
+        },
+    });
     if (!admin || !admin.telefone) {
         throw new AppError(404, 'Contato do admin não encontrado');
     }
@@ -412,30 +392,16 @@ export const listarUsuarios = asyncHandler(async (req, res) => {
     if (!req.usuario?.isAdmin) {
         throw new AppError(403, 'Apenas administradores podem listar usuários');
     }
-    let usuarios;
-    try {
-        usuarios = await prisma.usuario.findMany({
-            select: {
-                id: true,
-                nome: true,
-                email: true,
-                telefone: true,
-                isAdmin: true,
-            },
-            orderBy: { nome: 'asc' },
-        });
-    }
-    catch (error) {
-        const mensagem = String(error?.message || error || '');
-        const nomeErro = error?.name || '';
-        if (nomeErro === 'PrismaClientRustPanicError' || nomeErro === 'PrismaClientInitializationError' || mensagem.includes('timer has gone away')) {
-            await resetPrismaClient();
-            usuarios = await listarUsuariosMysql();
-        }
-        else {
-            throw error;
-        }
-    }
+    const usuarios = await prisma.usuario.findMany({
+        select: {
+            id: true,
+            nome: true,
+            email: true,
+            telefone: true,
+            isAdmin: true,
+        },
+        orderBy: { nome: 'asc' },
+    });
     res.json({
         sucesso: true,
         dados: usuarios,
