@@ -45,8 +45,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-// Force redeploy - hotfixes applied (2026-04-28 23:41)
-console.log('✅ API iniciando com hotfixes aplicados...');
 // Health check com status do banco
 app.get('/api/health', async (req, res) => {
     try {
