@@ -4,7 +4,7 @@ import { gerarToken, verificarToken } from '../utils/jwt.js';
 import { hashSenha, compararSenha } from '../utils/bcrypt.js';
 import { validar, registroSchema, loginSchema } from '../utils/validacoes.js';
 import prisma, { getPrismaClient, resetPrismaClient } from '../lib/prisma.js';
-import { buscarUsuarioLogin } from '../lib/mysql.js';
+import { buscarUsuarioLogin, listarUsuariosMysql } from '../lib/mysql.js';
 import { enviarEmail, emailRecuperacaoSenha, emailSenhaAlterada } from '../services/emailService.js';
 import jwt from 'jsonwebtoken';
 
@@ -491,16 +491,29 @@ export const listarUsuarios = asyncHandler(
       throw new AppError(403, 'Apenas administradores podem listar usuários');
     }
 
-    const usuarios = await prisma.usuario.findMany({
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        telefone: true,
-        isAdmin: true,
-      },
-      orderBy: { nome: 'asc' },
-    });
+    let usuarios;
+    try {
+      usuarios = await prisma.usuario.findMany({
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          telefone: true,
+          isAdmin: true,
+        },
+        orderBy: { nome: 'asc' },
+      });
+    } catch (error: any) {
+      const mensagem = String(error?.message || error || '');
+      const nomeErro = error?.name || '';
+
+      if (nomeErro === 'PrismaClientRustPanicError' || nomeErro === 'PrismaClientInitializationError' || mensagem.includes('timer has gone away')) {
+        await resetPrismaClient();
+        usuarios = await listarUsuariosMysql();
+      } else {
+        throw error;
+      }
+    }
 
     res.json({
       sucesso: true,

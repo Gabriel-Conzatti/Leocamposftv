@@ -9,6 +9,14 @@ type UsuarioLogin = {
   isAdmin: boolean;
 };
 
+type UsuarioLista = {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  isAdmin: boolean;
+};
+
 let pool: mysql.Pool | null = null;
 
 const getPool = () => {
@@ -66,4 +74,19 @@ export const buscarUsuarioLogin = async (
     senha: usuario.senha,
     isAdmin: Boolean(usuario.isAdmin),
   };
+};
+
+export const listarUsuariosMysql = async (): Promise<UsuarioLista[]> => {
+  const query = 'SELECT id, nome, email, telefone, isAdmin FROM usuarios ORDER BY nome ASC';
+
+  const [rows] = await getPool().query(query);
+  const usuarios = rows as Array<any>;
+
+  return usuarios.map((usuario) => ({
+    id: usuario.id,
+    nome: usuario.nome,
+    email: usuario.email,
+    telefone: usuario.telefone ?? null,
+    isAdmin: Boolean(usuario.isAdmin),
+  }));
 };
