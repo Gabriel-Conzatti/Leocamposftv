@@ -7,6 +7,7 @@ import aulaRoutes from './routes/aulaRoutes.js';
 import inscricaoRoutes from './routes/inscricaoRoutes.js';
 import pagamentoRoutes from './routes/pagamentoRoutes.js';
 import { errorHandler } from './utils/errors.js';
+import { testarConexaoMySQL } from './lib/mysql.js';
 
 // Validar variáveis de ambiente críticas
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
@@ -72,10 +73,18 @@ app.options('*', cors(corsOptions));
 // Health check
 app.get('/api/health', async (req: Request, res: Response) => {
   try {
+    const [dbOk, dbErro] = await testarConexaoMySQL();
+
     res.json({
       sucesso: true,
       mensagem: 'Servidor funcionando',
       timestamp: new Date().toISOString(),
+      diagnostico: {
+        jwtConfigurado: Boolean(process.env.JWT_SECRET),
+        databaseUrlConfigurada: Boolean(process.env.DATABASE_URL),
+        bancoConectado: dbOk,
+        bancoErro: dbOk ? undefined : dbErro,
+      },
     });
   } catch (error: any) {
     console.error('❌ Erro no health check:', error.message);

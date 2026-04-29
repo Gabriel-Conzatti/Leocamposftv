@@ -71,32 +71,65 @@ export const loginController = asyncHandler(async (req, res) => {
         throw new AppError(400, mensagens || 'Email/telefone ou senha inválidos');
     }
     // Verificar se é email ou telefone
-    const isEmail = value.email.includes('@');
-    const telefoneFormatado = value.email.replace(/\D/g, ''); // Remove caracteres não numéricos
+    const identificador = String(value.email || '').trim();
+    const isEmail = identificador.includes('@');
+    const emailNormalizado = identificador.toLowerCase();
+    const telefoneFormatado = identificador.replace(/\D/g, ''); // Remove caracteres não numéricos
     const buscarUsuarioPrisma = async () => {
         return getPrismaClient().usuario.findFirst({
             where: isEmail
-                ? { email: value.email }
+                ? { email: emailNormalizado }
                 : { telefone: telefoneFormatado },
         });
     };
     let usuario;
+    let prismaFalhou = false;
+    let mysqlFalhou = false;
+    let erroPrisma = '';
+    let erroMySQL = '';
     try {
         usuario = await buscarUsuarioPrisma();
     }
     catch (error) {
         const mensagem = String(error?.message || error || '');
         const nomeErro = error?.name || '';
+        prismaFalhou = true;
+        erroPrisma = mensagem;
         if (nomeErro === 'PrismaClientRustPanicError' || nomeErro === 'PrismaClientInitializationError' || mensagem.includes('timer has gone away')) {
-            await resetPrismaClient();
-            usuario = await buscarUsuarioLogin(value.email);
+            try {
+                await resetPrismaClient();
+                usuario = await buscarUsuarioLogin(identificador);
+            }
+            catch (mysqlError) {
+                mysqlFalhou = true;
+                erroMySQL = String(mysqlError?.message || mysqlError || '');
+            }
         }
         else {
-            throw error;
+            try {
+                usuario = await buscarUsuarioLogin(identificador);
+            }
+            catch (mysqlError) {
+                mysqlFalhou = true;
+                erroMySQL = String(mysqlError?.message || mysqlError || '');
+            }
         }
     }
-    if (!usuario) {
-        usuario = await buscarUsuarioLogin(value.email);
+    if (!usuario && !mysqlFalhou) {
+        try {
+            usuario = await buscarUsuarioLogin(identificador);
+        }
+        catch (mysqlError) {
+            mysqlFalhou = true;
+            erroMySQL = String(mysqlError?.message || mysqlError || '');
+        }
+    }
+    if (!usuario && prismaFalhou && mysqlFalhou) {
+        console.error('❌ Login indisponível: Prisma e MySQL falharam', {
+            prisma: erroPrisma,
+            mysql: erroMySQL,
+        });
+        throw new AppError(503, 'Serviço de login temporariamente indisponível. Tente novamente em instantes.');
     }
     if (!usuario) {
         throw new AppError(401, 'Credenciais inválidas');

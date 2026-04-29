@@ -67,3 +67,13 @@ export const buscarUsuarioLogin = async (
     isAdmin: Boolean(usuario.isAdmin),
   };
 };
+
+export const testarConexaoMySQL = async (): Promise<[boolean, string | null]> => {
+  try {
+    await getPool().query('SELECT 1');
+    return [true, null];
+  } catch (error: any) {
+    const mensagem = String(error?.message || 'Erro de conexão com banco');
+    return [false, mensagem];
+  }
+};

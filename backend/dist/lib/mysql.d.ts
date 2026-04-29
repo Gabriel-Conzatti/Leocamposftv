@@ -7,5 +7,6 @@ type UsuarioLogin = {
     isAdmin: boolean;
 };
 export declare const buscarUsuarioLogin: (emailOuTelefone: string) => Promise<UsuarioLogin | null>;
+export declare const testarConexaoMySQL: () => Promise<[boolean, string | null]>;
 export {};
 //# sourceMappingURL=mysql.d.ts.map

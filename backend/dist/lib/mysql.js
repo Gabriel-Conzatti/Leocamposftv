@@ -43,4 +43,14 @@ export const buscarUsuarioLogin = async (emailOuTelefone) => {
         isAdmin: Boolean(usuario.isAdmin),
     };
 };
+export const testarConexaoMySQL = async () => {
+    try {
+        await getPool().query('SELECT 1');
+        return [true, null];
+    }
+    catch (error) {
+        const mensagem = String(error?.message || 'Erro de conexão com banco');
+        return [false, mensagem];
+    }
+};
 //# sourceMappingURL=mysql.js.map
