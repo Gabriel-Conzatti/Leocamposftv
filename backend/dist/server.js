@@ -45,14 +45,13 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-// Health check com status do banco
+// Health check
 app.get('/api/health', async (req, res) => {
     try {
         res.json({
             sucesso: true,
             mensagem: 'Servidor funcionando',
             timestamp: new Date().toISOString(),
-            database: 'não verificado',
         });
     }
     catch (error) {
@@ -62,7 +61,6 @@ app.get('/api/health', async (req, res) => {
             mensagem: 'Erro ao verificar health do servidor',
             erro: error.message,
             timestamp: new Date().toISOString(),
-            database: 'indisponível',
         });
     }
 });

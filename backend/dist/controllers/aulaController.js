@@ -260,8 +260,27 @@ export const deletarAula = asyncHandler(async (req, res) => {
     if (!req.usuario.isAdmin && aula.professor_id !== req.usuario.id) {
         throw new AppError(403, 'Você não tem permissão para deletar esta aula');
     }
-    await prisma.aula.delete({
-        where: { id },
+    // Remove dados relacionados antes de deletar a aula para evitar falhas por chave estrangeira
+    await prisma.$transaction(async (tx) => {
+        const inscricoes = await tx.inscricao.findMany({
+            where: { aula_id: id },
+            select: { id: true },
+        });
+        const inscricaoIds = inscricoes.map((inscricao) => inscricao.id);
+        if (inscricaoIds.length > 0) {
+            await tx.pagamento.deleteMany({
+                where: { inscricao_id: { in: inscricaoIds } },
+            });
+        }
+        await tx.presenca.deleteMany({
+            where: { aula_id: id },
+        });
+        await tx.inscricao.deleteMany({
+            where: { aula_id: id },
+        });
+        await tx.aula.delete({
+            where: { id },
+        });
     });
     res.json({
         sucesso: true,
