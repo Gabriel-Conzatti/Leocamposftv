@@ -150,7 +150,11 @@ export const loginController = asyncHandler(
         prisma: erroPrisma,
         mysql: erroMySQL,
       });
-      throw new AppError(503, 'Serviço de login temporariamente indisponível. Tente novamente em instantes.');
+      return res.status(503).json({
+        sucesso: false,
+        mensagem: 'Serviço de login temporariamente indisponível. Tente novamente em instantes.',
+        erro: process.env.NODE_ENV === 'development' ? `${erroPrisma} | ${erroMySQL}` : 'Falha de conexão com o banco de dados',
+      });
     }
 
     if (!usuario) {
