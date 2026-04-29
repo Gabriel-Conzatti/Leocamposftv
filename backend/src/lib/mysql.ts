@@ -12,6 +12,17 @@ type UsuarioLogin = {
 let pool: mysql.Pool | null = null;
 let poolIpv4: mysql.Pool | null = null;
 
+const ERROS_TRANSITORIOS = new Set([
+  'PROTOCOL_CONNECTION_LOST',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+]);
+
 const getDbUrl = () => {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
@@ -75,33 +86,98 @@ const getIpv4Pool = () => {
 };
 
 const deveTentarIpv4 = (mensagemErro: string) => {
-  return mensagemErro.includes('Access denied') && mensagemErro.includes("'@");
+  const msg = mensagemErro.toLowerCase();
+  return (
+    (msg.includes('access denied') && msg.includes("'@")) ||
+    msg.includes('enotfound') ||
+    msg.includes('eai_again') ||
+    msg.includes('connect etimedout') ||
+    msg.includes('ehostunreach') ||
+    msg.includes('enetunreach')
+  );
+};
+
+const erroTransitorio = (error: any) => {
+  const code = String(error?.code || '').toUpperCase();
+  const msg = String(error?.message || '').toLowerCase();
+
+  if (ERROS_TRANSITORIOS.has(code)) {
+    return true;
+  }
+
+  return (
+    msg.includes('pool is closed') ||
+    msg.includes('cannot enqueue') ||
+    msg.includes('connection is in closed state') ||
+    msg.includes('connection lost') ||
+    msg.includes('server has gone away') ||
+    msg.includes('read econreset') ||
+    msg.includes('socket hang up')
+  );
+};
+
+const resetPools = async () => {
+  const fechar = async (instancia: mysql.Pool | null) => {
+    if (!instancia) {
+      return;
+    }
+    await instancia.end().catch(() => undefined);
+  };
+
+  await Promise.all([fechar(pool), fechar(poolIpv4)]);
+  pool = null;
+  poolIpv4 = null;
+};
+
+const executarQueryResiliente = async (query: string, params: unknown[]) => {
+  try {
+    return await getPool().query(query, params);
+  } catch (error: any) {
+    const mensagem = String(error?.message || error || '');
+
+    if (deveTentarIpv4(mensagem)) {
+      try {
+        return await getIpv4Pool().query(query, params);
+      } catch (erroIpv4: any) {
+        if (!erroTransitorio(erroIpv4)) {
+          throw erroIpv4;
+        }
+      }
+    }
+
+    if (!erroTransitorio(error)) {
+      throw error;
+    }
+
+    await resetPools();
+
+    try {
+      return await getPool().query(query, params);
+    } catch (retryError: any) {
+      const retryMsg = String(retryError?.message || retryError || '');
+      if (deveTentarIpv4(retryMsg)) {
+        return await getIpv4Pool().query(query, params);
+      }
+      throw retryError;
+    }
+  }
 };
 
 export const buscarUsuarioLogin = async (
   emailOuTelefone: string,
 ): Promise<UsuarioLogin | null> => {
-  const isEmail = emailOuTelefone.includes('@');
-  const telefoneFormatado = emailOuTelefone.replace(/\D/g, '');
+  const identificador = String(emailOuTelefone || '').trim();
+  const isEmail = identificador.includes('@');
+  const telefoneFormatado = identificador.replace(/\D/g, '');
+  const emailNormalizado = identificador.toLowerCase();
 
   const query = isEmail
     ? 'SELECT id, nome, email, telefone, senha, isAdmin FROM usuarios WHERE email = ? LIMIT 1'
     : 'SELECT id, nome, email, telefone, senha, isAdmin FROM usuarios WHERE telefone = ? LIMIT 1';
 
-  const params = [isEmail ? emailOuTelefone : telefoneFormatado];
+  const params = [isEmail ? emailNormalizado : telefoneFormatado];
 
-  let rows: any;
-  try {
-    [rows] = await getPool().query(query, params);
-  } catch (error: any) {
-    const mensagem = String(error?.message || error || '');
-
-    if (deveTentarIpv4(mensagem)) {
-      [rows] = await getIpv4Pool().query(query, params);
-    } else {
-      throw error;
-    }
-  }
+  const [rows] = await executarQueryResiliente(query, params);
 
   const usuarios = rows as Array<any>;
 
@@ -123,7 +199,7 @@ export const buscarUsuarioLogin = async (
 
 export const testarConexaoMySQL = async (): Promise<[boolean, string | null]> => {
   try {
-    await getPool().query('SELECT 1');
+    await executarQueryResiliente('SELECT 1', []);
     return [true, null];
   } catch (error: any) {
     const mensagem = String(error?.message || 'Erro de conexão com banco');

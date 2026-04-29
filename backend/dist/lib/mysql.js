@@ -1,6 +1,16 @@
 import mysql from 'mysql2/promise';
 let pool = null;
 let poolIpv4 = null;
+const ERROS_TRANSITORIOS = new Set([
+    'PROTOCOL_CONNECTION_LOST',
+    'ECONNRESET',
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'EHOSTUNREACH',
+    'ENETUNREACH',
+    'ENOTFOUND',
+    'EAI_AGAIN',
+]);
 const getDbUrl = () => {
     const databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) {
@@ -54,28 +64,81 @@ const getIpv4Pool = () => {
     return poolIpv4;
 };
 const deveTentarIpv4 = (mensagemErro) => {
-    return mensagemErro.includes('Access denied') && mensagemErro.includes("'@");
+    const msg = mensagemErro.toLowerCase();
+    return ((msg.includes('access denied') && msg.includes("'@")) ||
+        msg.includes('enotfound') ||
+        msg.includes('eai_again') ||
+        msg.includes('connect etimedout') ||
+        msg.includes('ehostunreach') ||
+        msg.includes('enetunreach'));
 };
-export const buscarUsuarioLogin = async (emailOuTelefone) => {
-    const isEmail = emailOuTelefone.includes('@');
-    const telefoneFormatado = emailOuTelefone.replace(/\D/g, '');
-    const query = isEmail
-        ? 'SELECT id, nome, email, telefone, senha, isAdmin FROM usuarios WHERE email = ? LIMIT 1'
-        : 'SELECT id, nome, email, telefone, senha, isAdmin FROM usuarios WHERE telefone = ? LIMIT 1';
-    const params = [isEmail ? emailOuTelefone : telefoneFormatado];
-    let rows;
+const erroTransitorio = (error) => {
+    const code = String(error?.code || '').toUpperCase();
+    const msg = String(error?.message || '').toLowerCase();
+    if (ERROS_TRANSITORIOS.has(code)) {
+        return true;
+    }
+    return (msg.includes('pool is closed') ||
+        msg.includes('cannot enqueue') ||
+        msg.includes('connection is in closed state') ||
+        msg.includes('connection lost') ||
+        msg.includes('server has gone away') ||
+        msg.includes('read econreset') ||
+        msg.includes('socket hang up'));
+};
+const resetPools = async () => {
+    const fechar = async (instancia) => {
+        if (!instancia) {
+            return;
+        }
+        await instancia.end().catch(() => undefined);
+    };
+    await Promise.all([fechar(pool), fechar(poolIpv4)]);
+    pool = null;
+    poolIpv4 = null;
+};
+const executarQueryResiliente = async (query, params) => {
     try {
-        [rows] = await getPool().query(query, params);
+        return await getPool().query(query, params);
     }
     catch (error) {
         const mensagem = String(error?.message || error || '');
         if (deveTentarIpv4(mensagem)) {
-            [rows] = await getIpv4Pool().query(query, params);
+            try {
+                return await getIpv4Pool().query(query, params);
+            }
+            catch (erroIpv4) {
+                if (!erroTransitorio(erroIpv4)) {
+                    throw erroIpv4;
+                }
+            }
         }
-        else {
+        if (!erroTransitorio(error)) {
             throw error;
         }
+        await resetPools();
+        try {
+            return await getPool().query(query, params);
+        }
+        catch (retryError) {
+            const retryMsg = String(retryError?.message || retryError || '');
+            if (deveTentarIpv4(retryMsg)) {
+                return await getIpv4Pool().query(query, params);
+            }
+            throw retryError;
+        }
     }
+};
+export const buscarUsuarioLogin = async (emailOuTelefone) => {
+    const identificador = String(emailOuTelefone || '').trim();
+    const isEmail = identificador.includes('@');
+    const telefoneFormatado = identificador.replace(/\D/g, '');
+    const emailNormalizado = identificador.toLowerCase();
+    const query = isEmail
+        ? 'SELECT id, nome, email, telefone, senha, isAdmin FROM usuarios WHERE email = ? LIMIT 1'
+        : 'SELECT id, nome, email, telefone, senha, isAdmin FROM usuarios WHERE telefone = ? LIMIT 1';
+    const params = [isEmail ? emailNormalizado : telefoneFormatado];
+    const [rows] = await executarQueryResiliente(query, params);
     const usuarios = rows;
     if (!usuarios.length) {
         return null;
@@ -92,7 +155,7 @@ export const buscarUsuarioLogin = async (emailOuTelefone) => {
 };
 export const testarConexaoMySQL = async () => {
     try {
-        await getPool().query('SELECT 1');
+        await executarQueryResiliente('SELECT 1', []);
         return [true, null];
     }
     catch (error) {
