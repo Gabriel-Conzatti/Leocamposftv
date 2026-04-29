@@ -161,19 +161,33 @@ export const loginController = asyncHandler(
       throw new AppError(401, 'Credenciais inválidas');
     }
 
-    // Verificar senha com bcrypt
-    const senhaValida = await compararSenha(value.senha, usuario.senha);
+    // Verificar senha com bcrypt (com fallback para legado em texto plano)
+    let senhaValida = false;
+    try {
+      senhaValida = await compararSenha(value.senha, usuario.senha);
+    } catch (error: any) {
+      const mensagem = String(error?.message || error || '');
+      console.error('⚠️ Falha ao comparar senha com bcrypt:', mensagem);
+      senhaValida = value.senha === usuario.senha;
+    }
 
     if (!senhaValida) {
       throw new AppError(401, 'Credenciais inválidas');
     }
 
     // Gerar token
-    const token = gerarToken({
-      id: usuario.id,
-      email: usuario.email,
-      isAdmin: usuario.isAdmin,
-    });
+    let token: string;
+    try {
+      token = gerarToken({
+        id: usuario.id,
+        email: usuario.email,
+        isAdmin: usuario.isAdmin,
+      });
+    } catch (error: any) {
+      const mensagem = String(error?.message || error || '');
+      console.error('❌ Falha ao gerar token no login:', mensagem);
+      throw new AppError(503, 'Serviço de autenticação temporariamente indisponível.');
+    }
 
     const { senha: _, ...usuarioSemSenha } = usuario;
 
