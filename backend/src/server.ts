@@ -8,6 +8,19 @@ import inscricaoRoutes from './routes/inscricaoRoutes.js';
 import pagamentoRoutes from './routes/pagamentoRoutes.js';
 import { errorHandler } from './utils/errors.js';
 
+// Validar variáveis de ambiente críticas
+const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`❌ ERRO CRÍTICO: Variáveis de ambiente faltando: ${missingEnvVars.join(', ')}`);
+  console.error('Configure estas variáveis no painel Hostinger: Settings > Environment Variables');
+  // Não fazer process.exit, apenas logar para desenvolvimento
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Aplicação continuará rodando, mas login falhará até configurar variáveis.');
+  }
+}
+
 const app = express();
 
 // Middleware

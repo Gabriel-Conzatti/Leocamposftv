@@ -14,10 +14,12 @@ export const errorHandler = (err, _req, res, _next) => {
         });
     }
     console.error('Erro não tratado:', err);
+    // Em produção, mostrar erro se for sobre variáveis de ambiente (temporary debugging)
+    const isEnvError = err.message?.includes('JWT_SECRET') || err.message?.includes('DATABASE_URL');
     res.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno do servidor',
-        erro: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        erro: process.env.NODE_ENV === 'development' || isEnvError ? err.message : undefined,
     });
 };
 export const asyncHandler = (fn) => {
