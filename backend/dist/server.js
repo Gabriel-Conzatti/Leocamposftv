@@ -6,7 +6,7 @@ import aulaRoutes from './routes/aulaRoutes.js';
 import inscricaoRoutes from './routes/inscricaoRoutes.js';
 import pagamentoRoutes from './routes/pagamentoRoutes.js';
 import { errorHandler } from './utils/errors.js';
-import { testarConexaoMySQL } from './lib/mysql.js';
+import { testarConexaoMySQL, obterResumoConexaoBanco } from './lib/mysql.js';
 // Validar variáveis de ambiente críticas
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -61,6 +61,7 @@ app.options('*', cors(corsOptions));
 app.get('/api/health', async (req, res) => {
     try {
         const [dbOk, dbErro] = await testarConexaoMySQL();
+        const resumoConexaoBanco = obterResumoConexaoBanco();
         res.json({
             sucesso: true,
             mensagem: 'Servidor funcionando',
@@ -70,6 +71,7 @@ app.get('/api/health', async (req, res) => {
                 databaseUrlConfigurada: Boolean(process.env.DATABASE_URL),
                 bancoConectado: dbOk,
                 bancoErro: dbOk ? undefined : dbErro,
+                banco: resumoConexaoBanco,
             },
         });
     }
