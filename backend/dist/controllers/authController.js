@@ -62,118 +62,142 @@ export const registroController = asyncHandler(async (req, res) => {
 });
 export const loginController = asyncHandler(async (req, res) => {
     const { email, senha } = req.body;
-    // Validar dados de entrada com Joi
-    const { valido, mensagens, value } = validar(loginSchema, {
-        email,
-        senha,
-    });
-    if (!valido) {
-        throw new AppError(400, mensagens || 'Email/telefone ou senha inválidos');
-    }
-    // Verificar se é email ou telefone
-    const identificador = String(value.email || '').trim();
-    const isEmail = identificador.includes('@');
-    const emailNormalizado = identificador.toLowerCase();
-    const telefoneFormatado = identificador.replace(/\D/g, ''); // Remove caracteres não numéricos
-    const buscarUsuarioPrisma = async () => {
-        return getPrismaClient().usuario.findFirst({
-            where: isEmail
-                ? { email: emailNormalizado }
-                : { telefone: telefoneFormatado },
-        });
-    };
-    let usuario;
-    let prismaFalhou = false;
-    let mysqlFalhou = false;
-    let erroPrisma = '';
-    let erroMySQL = '';
     try {
-        usuario = await buscarUsuarioPrisma();
-    }
-    catch (error) {
-        const mensagem = String(error?.message || error || '');
-        const nomeErro = error?.name || '';
-        prismaFalhou = true;
-        erroPrisma = mensagem;
-        if (nomeErro === 'PrismaClientRustPanicError' || nomeErro === 'PrismaClientInitializationError' || mensagem.includes('timer has gone away')) {
-            try {
-                await resetPrismaClient();
-                usuario = await buscarUsuarioLogin(identificador);
-            }
-            catch (mysqlError) {
-                mysqlFalhou = true;
-                erroMySQL = String(mysqlError?.message || mysqlError || '');
-            }
+        // Validar dados de entrada com Joi
+        const { valido, mensagens, value } = validar(loginSchema, {
+            email,
+            senha,
+        });
+        if (!valido) {
+            throw new AppError(400, mensagens || 'Email/telefone ou senha inválidos');
         }
-        else {
-            try {
-                usuario = await buscarUsuarioLogin(identificador);
-            }
-            catch (mysqlError) {
-                mysqlFalhou = true;
-                erroMySQL = String(mysqlError?.message || mysqlError || '');
-            }
-        }
-    }
-    if (!usuario && !mysqlFalhou) {
+        // Verificar se é email ou telefone
+        const identificador = String(value.email || '').trim();
+        const isEmail = identificador.includes('@');
+        const emailNormalizado = identificador.toLowerCase();
+        const telefoneFormatado = identificador.replace(/\D/g, ''); // Remove caracteres não numéricos
+        const buscarUsuarioPrisma = async () => {
+            return getPrismaClient().usuario.findFirst({
+                where: isEmail
+                    ? { email: emailNormalizado }
+                    : { telefone: telefoneFormatado },
+            });
+        };
+        let usuario;
+        let prismaFalhou = false;
+        let mysqlFalhou = false;
+        let erroPrisma = '';
+        let erroMySQL = '';
         try {
-            usuario = await buscarUsuarioLogin(identificador);
+            usuario = await buscarUsuarioPrisma();
         }
-        catch (mysqlError) {
-            mysqlFalhou = true;
-            erroMySQL = String(mysqlError?.message || mysqlError || '');
+        catch (error) {
+            const mensagem = String(error?.message || error || '');
+            const nomeErro = error?.name || '';
+            prismaFalhou = true;
+            erroPrisma = mensagem;
+            if (nomeErro === 'PrismaClientRustPanicError' || nomeErro === 'PrismaClientInitializationError' || mensagem.includes('timer has gone away')) {
+                try {
+                    await resetPrismaClient();
+                    usuario = await buscarUsuarioLogin(identificador);
+                }
+                catch (mysqlError) {
+                    mysqlFalhou = true;
+                    erroMySQL = String(mysqlError?.message || mysqlError || '');
+                }
+            }
+            else {
+                try {
+                    usuario = await buscarUsuarioLogin(identificador);
+                }
+                catch (mysqlError) {
+                    mysqlFalhou = true;
+                    erroMySQL = String(mysqlError?.message || mysqlError || '');
+                }
+            }
         }
-    }
-    if (!usuario && prismaFalhou && mysqlFalhou) {
-        console.error('❌ Login indisponível: Prisma e MySQL falharam', {
-            prisma: erroPrisma,
-            mysql: erroMySQL,
+        if (!usuario && !mysqlFalhou) {
+            try {
+                usuario = await buscarUsuarioLogin(identificador);
+            }
+            catch (mysqlError) {
+                mysqlFalhou = true;
+                erroMySQL = String(mysqlError?.message || mysqlError || '');
+            }
+        }
+        if (!usuario && prismaFalhou && mysqlFalhou) {
+            console.error('❌ Login indisponível: Prisma e MySQL falharam', {
+                prisma: erroPrisma,
+                mysql: erroMySQL,
+            });
+            return res.status(503).json({
+                sucesso: false,
+                mensagem: 'Serviço de login temporariamente indisponível. Tente novamente em instantes.',
+                erro: process.env.NODE_ENV === 'development' ? `${erroPrisma} | ${erroMySQL}` : 'Falha de conexão com o banco de dados',
+            });
+        }
+        if (!usuario) {
+            throw new AppError(401, 'Credenciais inválidas');
+        }
+        // Verificar senha com bcrypt (com fallback para legado em texto plano)
+        let senhaValida = false;
+        try {
+            senhaValida = await compararSenha(value.senha, usuario.senha);
+        }
+        catch (error) {
+            const mensagem = String(error?.message || error || '');
+            console.error('⚠️ Falha ao comparar senha com bcrypt:', mensagem);
+            senhaValida = value.senha === usuario.senha;
+        }
+        if (!senhaValida) {
+            throw new AppError(401, 'Credenciais inválidas');
+        }
+        // Gerar token
+        let token;
+        try {
+            token = gerarToken({
+                id: usuario.id,
+                email: usuario.email,
+                isAdmin: usuario.isAdmin,
+            });
+        }
+        catch (error) {
+            const mensagem = String(error?.message || error || '');
+            console.error('❌ Falha ao gerar token no login:', mensagem);
+            throw new AppError(503, 'Serviço de autenticação temporariamente indisponível.');
+        }
+        const { senha: _, ...usuarioSemSenha } = usuario;
+        res.status(200).json({
+            sucesso: true,
+            mensagem: 'Login realizado com sucesso',
+            dados: {
+                usuario: usuarioSemSenha,
+                token,
+            },
         });
-        return res.status(503).json({
+    }
+    catch (error) {
+        if (error instanceof AppError) {
+            throw error;
+        }
+        const mensagem = String(error?.message || error || 'Erro inesperado no login');
+        console.error('❌ Erro inesperado no login:', mensagem);
+        if (mensagem.includes('Access denied') ||
+            mensagem.includes('P1000') ||
+            mensagem.includes("Can't reach database server") ||
+            mensagem.includes('DATABASE_URL')) {
+            return res.status(503).json({
+                sucesso: false,
+                mensagem: 'Serviço de login temporariamente indisponível. Tente novamente em instantes.',
+                erro: process.env.NODE_ENV === 'development' ? mensagem : 'Falha de conexão com o banco de dados',
+            });
+        }
+        return res.status(500).json({
             sucesso: false,
-            mensagem: 'Serviço de login temporariamente indisponível. Tente novamente em instantes.',
-            erro: process.env.NODE_ENV === 'development' ? `${erroPrisma} | ${erroMySQL}` : 'Falha de conexão com o banco de dados',
+            mensagem: 'Erro interno do servidor',
+            erro: process.env.NODE_ENV === 'development' ? mensagem : undefined,
         });
     }
-    if (!usuario) {
-        throw new AppError(401, 'Credenciais inválidas');
-    }
-    // Verificar senha com bcrypt (com fallback para legado em texto plano)
-    let senhaValida = false;
-    try {
-        senhaValida = await compararSenha(value.senha, usuario.senha);
-    }
-    catch (error) {
-        const mensagem = String(error?.message || error || '');
-        console.error('⚠️ Falha ao comparar senha com bcrypt:', mensagem);
-        senhaValida = value.senha === usuario.senha;
-    }
-    if (!senhaValida) {
-        throw new AppError(401, 'Credenciais inválidas');
-    }
-    // Gerar token
-    let token;
-    try {
-        token = gerarToken({
-            id: usuario.id,
-            email: usuario.email,
-            isAdmin: usuario.isAdmin,
-        });
-    }
-    catch (error) {
-        const mensagem = String(error?.message || error || '');
-        console.error('❌ Falha ao gerar token no login:', mensagem);
-        throw new AppError(503, 'Serviço de autenticação temporariamente indisponível.');
-    }
-    const { senha: _, ...usuarioSemSenha } = usuario;
-    res.status(200).json({
-        sucesso: true,
-        mensagem: 'Login realizado com sucesso',
-        dados: {
-            usuario: usuarioSemSenha,
-            token,
-        },
-    });
 });
 export const logoutController = asyncHandler(async (req, res) => {
     // Token é gerenciado no frontend (localStorage)

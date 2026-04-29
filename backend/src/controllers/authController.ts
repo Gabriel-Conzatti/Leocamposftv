@@ -80,6 +80,8 @@ export const loginController = asyncHandler(
   async (req: Request, res: Response) => {
     const { email, senha } = req.body;
 
+    try {
+
     // Validar dados de entrada com Joi
     const { valido, mensagens, value } = validar(loginSchema, {
       email,
@@ -199,6 +201,33 @@ export const loginController = asyncHandler(
         token,
       },
     });
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      const mensagem = String(error?.message || error || 'Erro inesperado no login');
+      console.error('❌ Erro inesperado no login:', mensagem);
+
+      if (
+        mensagem.includes('Access denied') ||
+        mensagem.includes('P1000') ||
+        mensagem.includes("Can't reach database server") ||
+        mensagem.includes('DATABASE_URL')
+      ) {
+        return res.status(503).json({
+          sucesso: false,
+          mensagem: 'Serviço de login temporariamente indisponível. Tente novamente em instantes.',
+          erro: process.env.NODE_ENV === 'development' ? mensagem : 'Falha de conexão com o banco de dados',
+        });
+      }
+
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno do servidor',
+        erro: process.env.NODE_ENV === 'development' ? mensagem : undefined,
+      });
+    }
   }
 );
 
